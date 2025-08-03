@@ -43,7 +43,7 @@ sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
     {"RRA", &sm83::RRA, 4},
     {"JR NZ e8", &sm83::JR_NZ_e, 12},
     {"LD HL n16", &sm83::LD_HL_nn, 12},
-    {"LD [HL+] A", &sm83::LD_HLim_A, 8},
+    {"LD [HL+] A", &sm83::LD_HLip_A, 8},
     {"INC HL", &sm83::INC_HL, 8},
     {"INC H", &sm83::INC_H, 4},
     {"DEC H", &sm83::DEC_H, 4},
@@ -51,7 +51,7 @@ sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
     {"DAA", &sm83::DAA, 4},
     {"JR Z e8", &sm83::JR_Z_e, 12},
     {"ADD HL HL", &sm83::ADD_HL_HL, 8},
-    {"LD A [HL]", &sm83::LD_A_HLi, 8},
+    {"LD A [HL+]", &sm83::LD_A_HLip, 8},
     {"DEC HL", &sm83::DEC_HL, 8},
     {"INC L", &sm83::INC_L, 4},
     {"DEC L", &sm83::DEC_L, 4},
@@ -59,7 +59,7 @@ sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
     {"CPL", &sm83::CPL, 4},
     {"JR NC e8", &sm83::JR_NC_e, 12},
     {"LD SP n16", &sm83::LD_SP_nn, 12},
-    {"LD [HL] A", &sm83::LD_HLi_A, 8},
+    {"LD [HL-] A", &sm83::LD_HLim_A, 8},
     {"INC SP", &sm83::INC_SP, 8},
     {"INC [HL]", &sm83::INC_HLi, 12},
     {"DEC [HL]", &sm83::DEC_HLi, 12},
@@ -67,7 +67,7 @@ sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
     {"SCF", &sm83::SCF, 4},
     {"JR C e8", &sm83::JR_C_e, 12},
     {"ADD HL SP", &sm83::ADD_HL_SP, 8},
-    {"LD A [HL]", &sm83::LD_A_HLi, 8},
+    {"LD A [HL-]", &sm83::LD_A_HLim, 8},
     {"DEC SP", &sm83::DEC_SP, 8},
     {"INC A", &sm83::INC_A, 4},
     {"DEC A", &sm83::DEC_A, 4},
@@ -535,4 +535,589 @@ void sm83::write(uint16_t addr, uint8_t data) {
     bus->write(addr, data);
 }
 
+void sm83::clock() {
+    if (cycle == 0) {
+        IR = read(PC); // Read Opcode
+        PC++; // Increment program counter
+        cycle = opcodeTable[IR].cycles / 4; // Set cycles
+        const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
+        cycle -= additionalCycles;
+    }
+    cycle--;
+}
 
+void sm83::setFlags(const FlagRegisters f, const bool v) const {
+    if (v) {
+        F |= f;
+    } else {
+        F &= ~f;
+    }
+}
+
+uint8_t sm83::getFlags(const FlagRegisters f) const {
+    return ((F & f) > 0) ? 1 : 0;
+}
+
+
+// Opcode implementation
+
+uint8_t sm83::LD_r_r(uint8_t &r1, const uint8_t &r2) {
+    r1 = r2;
+    return 0;
+}
+
+uint8_t sm83::LD_r_n(uint8_t &r1) {
+    r1 = read(PC);
+    PC++;
+    return 0;
+}
+
+uint8_t sm83::LD_HLi_r(const uint8_t &r1){
+    write(HL, r1);
+    return 0;
+}
+
+uint8_t sm83::LD_r_HLi(uint8_t &r1) {
+    r1 = read(HL);
+    return 0;
+}
+
+uint8_t sm83::LD_HLi_n() {
+    write(HL, read(PC));
+    PC++;
+    return 0;
+}
+
+uint8_t sm83::LD_A_BCi() {
+    A = read(BC);
+    return 0;
+}
+
+uint8_t sm83::LD_A_DEi() {
+    A = read(DE);
+    return 0;
+}
+
+uint8_t sm83::LD_BCi_A() {
+    write(BC, A);
+    return 0;
+}
+
+uint8_t sm83::LD_DEi_A() {
+    write(DE, A);
+    return 0;
+}
+
+uint8_t sm83::LD_A_nni() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t W = read(PC);
+    PC++;
+    const uint16_t addr = (static_cast<uint16_t>(W) << 8) | static_cast<uint16_t>(Z);
+    A = read(addr);
+    return 0;
+}
+
+uint8_t sm83::LD_nni_A() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t W = read(PC);
+    PC++;
+    const uint16_t addr = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
+    write(addr, A);
+    return 0;
+}
+
+uint8_t sm83::LDH_A_Ci() {
+    const uint16_t addr = static_cast<uint16_t>(0xFF) << 8 | static_cast<uint16_t>(C);
+    A = read(addr);
+    return 0;
+}
+
+uint8_t sm83::LDH_Ci_A() {
+    const uint16_t addr = static_cast<uint16_t>(0xFF) << 8 | static_cast<uint16_t>(C);
+    write(addr, A);
+    return 0;
+}
+
+uint8_t sm83::LDH_A_ni() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint16_t addr = static_cast<uint16_t>(0xFF) << 8 | static_cast<uint16_t>(Z);
+    A = read(addr);
+    return 0;
+}
+
+uint8_t sm83::LDH_ni_A() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint16_t addr = static_cast<uint16_t>(0xFF) << 8 | static_cast<uint16_t>(Z);
+    write(addr, A);
+    return 0;
+}
+
+uint8_t sm83::LD_A_HLim() {
+    A = read(HL);
+    HL--;
+    return 0;
+}
+
+uint8_t sm83::LD_HLim_A() {
+    write(HL, A);
+    HL--;
+    return 0;
+}
+
+uint8_t sm83::LD_A_HLip() {
+    A = read(HL);
+    HL++;
+    return 0;
+}
+
+uint8_t sm83::LD_HLip_A() {
+    write(HL, A);
+    HL++;
+    return 0;
+}
+
+uint8_t sm83::LD_rr_nn(uint16_t &rr1) {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t W = read(PC);
+    PC++;
+    const uint16_t data = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
+    rr1 = data;
+    return 0;
+}
+
+uint8_t sm83::LD_nni_SP() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t W = read(PC);
+    PC++;
+    const uint16_t addr = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
+    write(addr, SP);
+    return 0;
+}
+
+uint8_t sm83::LD_SP_HL() {
+    SP = HL;
+    return 0;
+}
+
+uint8_t sm83::PUSH_rr(const uint16_t &rr1) {
+    SP--;
+    write(SP, static_cast<uint8_t>(rr1 >> 8));
+    SP--;
+    write(SP, static_cast<uint8_t>(rr1));
+    return 0;
+}
+
+uint8_t sm83::POP_rr(uint16_t &rr1) {
+    const uint8_t Z = read(SP);
+    SP++;
+    const uint8_t W = read(SP);
+    SP++;
+    rr1 = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
+    return 0;
+}
+
+uint8_t sm83::LD_HL_SP_plus_e() {
+    const auto e = static_cast<int8_t>(read(PC));
+    PC++;
+    const uint16_t result = SP + e;
+    HL = result;
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, (SP & 0xF) + (e & 0xF) > 0xF);
+    setFlags(c, static_cast<uint16_t>((SP & 0xFF) + e) > 0x00FF);
+    return 0;
+}
+
+uint8_t sm83::ADD_A_r(const uint8_t &r1) {
+    const uint8_t result = A + r1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (r1 & 0xF) > 0xF);  // half-carry: bit 3 → 4
+    setFlags(c, static_cast<uint16_t>(A) + r1 > 0xFF);  // carry: bit 7 → 8
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::ADD_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A + Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (Z & 0xF) > 0xF);
+    setFlags(c, static_cast<uint16_t>(A) + Z > 0xFF);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::ADD_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A + Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (Z & 0xF) > 0xF);
+    setFlags(c, static_cast<uint16_t>(A) + Z > 0xFF);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::ADC_A_r(const uint8_t &r1) {
+    const uint8_t flag = getFlags(c);
+    const uint8_t result = A + r1 + flag;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (r1 & 0xF) + flag > 0xF);
+    setFlags(c, static_cast<uint16_t>(A) + r1 + flag > 0xFF);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::ADC_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t flag = getFlags(c);
+    const uint8_t result = A + Z + flag;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (Z & 0xF) + flag > 0xF);
+    setFlags(c, static_cast<uint16_t>(A) + Z + flag > 0xFF);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::ADC_A_n() {
+    const uint8_t flag = getFlags(c);
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A + Z + flag;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (A & 0xF) + (Z & 0xF) + flag > 0xF);
+    setFlags(c, static_cast<uint16_t>(A) + Z + flag > 0xFF);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SUB_A_r(const uint8_t &r1) {
+    const uint8_t result = A - r1;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (r1 & 0xF));
+    setFlags(c, A < r1);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SUB_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A - Z;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (Z & 0xF));
+    setFlags(c, A < Z);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SUB_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A - Z;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (Z & 0xF));
+    setFlags(c, A < Z);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SBC_A_r(const uint8_t &r1) {
+    const uint8_t flag = getFlags(c);
+    const uint8_t result = A - r1 - flag;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < ((r1 + flag & 0xF)));
+    setFlags(c, A < static_cast<uint16_t>(r1) + flag);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SBC_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t flag = getFlags(c);
+    const uint8_t result = A - Z - flag;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < ((Z + flag) & 0xF));
+    setFlags(c, A < static_cast<uint16_t>(Z) + flag);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::SBC_A_n() {
+    const uint8_t flag = getFlags(c);
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A - Z - flag;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < ((Z+flag) & 0xF));
+    setFlags(c, A < static_cast<uint16_t>(Z) + flag);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::CP_A_r(const uint8_t &r1) {
+    const uint8_t result = A - r1;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (r1 & 0xF));
+    setFlags(c, A < r1);
+    return 0;
+}
+
+uint8_t sm83::CP_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A - Z;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (Z & 0xF));
+    setFlags(c, A < Z);
+    return 0;
+}
+
+uint8_t sm83::CP_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A - Z;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (A & 0xF) < (Z & 0xF));
+    setFlags(c, A < Z);
+    return 0;
+}
+
+uint8_t sm83::INC_r(uint8_t &r1) {
+    const uint8_t result = r1 + 1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (r1 & 0xF) + 1 > 0xF);
+    r1 = result;
+    return 0;
+}
+
+uint8_t sm83::INC_HLi() {
+    uint8_t Z = read(HL);
+    const uint8_t result = Z + 1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, (Z & 0xF) + 1 > 0xF);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::DEC_A_r(uint8_t &r1) {
+    const uint8_t result = r1 - 1;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (r1 & 0xF) == 0);
+    r1 = result;
+    return 0;
+}
+
+uint8_t sm83::DEC_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = Z - 1;
+    setFlags(z, result == 0);
+    setFlags(n, true);
+    setFlags(h, (Z & 0xF) == 0);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::AND_A_r(const uint8_t &r1) {
+    const uint8_t result = A & r1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, true);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::AND_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A & Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, true);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::AND_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A & Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, true);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::OR_A_r(const uint8_t &r1) {
+    const uint8_t result = A | r1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::OR_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A | Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::OR_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A | Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::XOR_A_r(const uint8_t &r1) {
+    const uint8_t result = A ^ r1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::XOR_A_HLi() {
+    const uint8_t Z = read(HL);
+    const uint8_t result = A ^ Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::XOR_A_n() {
+    const uint8_t Z = read(PC);
+    PC++;
+    const uint8_t result = A ^ Z;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    A = result;
+    return 0;
+}
+
+uint8_t sm83::CCF() {
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, ~getFlags(c));
+    return 0;
+}
+
+uint8_t sm83::SCF() {
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, true);
+    return 0;
+}
+
+uint8_t sm83::DAA() {
+    uint8_t result = 0;
+    if (getFlags(n) == 1) {
+        uint8_t adjustment = 0;
+        if (getFlags(h) == 1) {
+            adjustment = adjustment + 0x06;
+        }
+        if (getFlags(c) == 1) {
+            adjustment = adjustment + 0x60;
+        }
+        result = A - adjustment;
+        A = result;
+    } else {
+        uint8_t adjustment = 0;
+        if (getFlags(h) == 1 || (A & 0x0F) > 0x09) {
+            adjustment = adjustment + 0x06;
+        }
+        if (getFlags(c) == 1 || A > 0x99) {
+            adjustment = adjustment + 0x60;
+            setFlags(c, true);
+        } else {
+            setFlags(c, false);
+        }
+        result = A + adjustment;
+        A = result;
+    }
+    setFlags(z, result == 0);
+    setFlags(h, false);
+    return 0;
+}
+
+uint8_t sm83::CPL() {
+    A = ~A;
+    setFlags(n, true);
+    setFlags(h, true);
+    return 0;
+}
+
+uint8_t sm83::INC_rr(uint16_t &rr1) {
+    rr1 = rr1 + 1;
+    return 0;
+}
+
+uint8_t sm83::DEC_rr(uint16_t &rr1) {
+    rr1 = rr1 - 1;
+    return 0;
+}
+
+uint8_t sm83::ADD_HL_rr(const uint16_t &rr1) {
+    uint16_t result = HL + rr1;
+    setFlags(n, false);
+    setFlags(h, (HL & 0xFFF) + (rr1 & 0xFFF) > 0xFFF);
+    setFlags(c, result < HL);
+    HL = result;
+    return 0;
+}
+
+uint8_t sm83::ADD_SP_e() {
+    const auto e = static_cast<int8_t>(read(PC));
+    PC++;
+    const uint16_t result = SP + e;
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, ((SP ^ e ^ result) & 0x10) == 0x10);
+    setFlags(c, ((SP ^ e ^ result) & 0x100) == 0x100);
+    SP = result;
+    return 0;
+}

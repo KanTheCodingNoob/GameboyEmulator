@@ -61,17 +61,17 @@ public:
     // m: Decrement
     // p: Increment
     // Core methods that the opcode method is going to use to reduce code repetition
-    uint8_t LD_r_r(uint8_t &r1, uint8_t &r2); uint8_t LD_r_n(uint8_t &r1); uint8_t LD_r_HLi(uint8_t &r1);
-    uint8_t LD_HLi_r(uint8_t &r1); uint8_t LD_rr_nn(uint16_t &rr1); uint8_t POP_rr(uint16_t &rr1);
-    uint8_t PUSH_rr(uint16_t &rr1); uint8_t ADD_r(uint8_t &r1); uint8_t ADC_r(uint8_t &r1);
-    uint8_t SBC_r(uint8_t &r1); uint8_t CP_r(uint8_t &r1); uint8_t INC_r(uint8_t &r1);
-    uint8_t AND_r(uint8_t &r1); uint8_t XOR_r(uint8_t &r1); uint8_t ADD_HL_rr(uint16_t &rr1);
+    uint8_t LD_r_r(uint8_t &r1, const uint8_t &r2); uint8_t LD_r_n(uint8_t &r1); uint8_t LD_r_HLi(uint8_t &r1);
+    uint8_t LD_HLi_r(const uint8_t &r1); uint8_t LD_rr_nn(uint16_t &rr1); uint8_t POP_rr(uint16_t &rr1);
+    uint8_t PUSH_rr(const uint16_t &rr1); uint8_t ADD_A_r(const uint8_t &r1) ; uint8_t ADC_A_r(const uint8_t &r1) ;
+    uint8_t SBC_A_r(const uint8_t &r1); uint8_t CP_A_r(const uint8_t &r1); uint8_t INC_r(uint8_t &r1);
+    uint8_t AND_A_r(const uint8_t &r1); uint8_t XOR_A_r(const uint8_t &r1); uint8_t ADD_HL_rr(const uint16_t &rr1);
     uint8_t SUB_HL_rr(uint16_t &rr1); uint8_t RL_r(uint8_t &r1); uint8_t RLC_r(uint8_t &r1);
     uint8_t RRC_r(uint8_t &r1); uint8_t SRA_r(uint8_t &r1); uint8_t RR_r(uint8_t &r1); uint8_t SWAP_r(uint8_t &r1);
     uint8_t SLA_r(uint8_t &r1); uint8_t SRL_r(uint8_t &r1); uint8_t BIT_b_r(uint8_t b, uint8_t &r1); uint8_t RES_b_r(uint8_t b, uint8_t &r1);
-    uint8_t DEC_r(uint8_t &r1); uint8_t OR_r(uint8_t &r1); uint8_t SET_b_r(uint8_t &r1); uint8_t INC_rr(uint16_t &rr1);
+    uint8_t DEC_A_r(uint8_t &r1); uint8_t OR_A_r(const uint8_t &r1); uint8_t SET_b_r(uint8_t &r1); uint8_t INC_rr(uint16_t &rr1);
     uint8_t DEC_rr(uint16_t &rr1); uint8_t JR_cc_e(); uint8_t RET_cc(); uint8_t JP_cc_nn(); uint8_t CALL_cc_nn();
-    uint8_t RST_n(uint8_t n); uint8_t BIT_b_HLi(uint8_t b); uint8_t RES_b_HLi(uint8_t b);
+    uint8_t RST_n(uint8_t n); uint8_t BIT_b_HLi(uint8_t b); uint8_t RES_b_HLi(uint8_t b); uint8_t SUB_A_r(const uint8_t &r1);
 
     // Actual opcode
     uint8_t LD_HLi_n(); uint8_t LD_A_BCi(); uint8_t LD_A_DEi(); uint8_t LD_BCi_A(); uint8_t LD_B_n(/*LD_R_n*/);
@@ -79,7 +79,7 @@ public:
     uint8_t LD_HLip_A(); uint8_t LDH_A_Ci(); uint8_t LDH_Ci_A(); uint8_t LDH_A_ni(); uint8_t LDH_ni_A(); uint8_t LD_DE_nn(/*LD_rr_nn*/);
     uint8_t LD_nni_SP(); uint8_t LD_SP_HL(); uint8_t LD_BC_nn(/*LD_rr_nn*/); uint8_t INC_BC(/*INC_rr*/); uint8_t DEC_H(/*DEC_r*/);
     uint8_t LD_HL_SP_plus_e(); uint8_t ADD_A_HLi(); uint8_t DEC_B(); uint8_t INC_B(/*INC_r*/); uint8_t INC_C(/*INC_r*/);
-    uint8_t ADD_A_n(); uint8_t ADC_A_HLi(); uint8_t ADC_A_n(); uint8_t SUB_r(uint8_t &r1); uint8_t SUB_A_HLi(); uint8_t DEC_D(/*DEC_r*/);
+    uint8_t ADD_A_n(); uint8_t ADC_A_HLi(); uint8_t ADC_A_n(); uint8_t SUB_A_HLi(); uint8_t DEC_D(/*DEC_r*/);
     uint8_t SUB_A_n(); uint8_t SBC_A_HLi(); uint8_t SBC_A_n(); uint8_t SUB_HLi_A(); uint8_t SUB_n_A(); uint8_t LD_E_n(/*LD_r_n*/);
     uint8_t CP_A_HLi(); uint8_t CP_A_n(); uint8_t INC_HLi(); uint8_t ADD_HL_BC(/*ADD_HL_rr*/); uint8_t LD_HL_nn(/*LD_rr_nn*/);
     uint8_t DEC_HLi(); uint8_t AND_A_HLi(); uint8_t AND_A_n();  uint8_t OR_A_HLi(); uint8_t OR_A_n(); uint8_t INC_HL(/*INC_rr*/);
@@ -131,7 +131,7 @@ public:
     uint8_t POP_DE(/*POP_rr*/); uint8_t JP_NC_nn(/*JP_cc_nn*/); uint8_t CALL_NC_nn(/*CALL_cc_nn*/); uint8_t PUSH_DE(/*PUSH_DE*/);
     uint8_t RST_$10(/*RST_n*/); uint8_t RET_C(/*RET_cc*/); uint8_t JP_C_nn(/*JP_cc_nn*/); uint8_t CALL_C_nn(/*CALL_cc_nn*/);
     uint8_t PUSH_HL(/*PUSH_rr*/); uint8_t RST_$18(/*RST_n*/); uint8_t POP_HL(/*POP_rr*/); uint8_t RST_$20(/*RST_n*/);
-    uint8_t RST_$28(/*RST_n*/); uint8_t POP_AF(/*POP_rr*/); uint8_t PUSH_AF(/*PUSH_rr*/); uint8_t RST_$30(/*RST_n*/);
+    uint8_t RST_$28(/*RST_n*/); uint8_t POP_AF(/*POP_rr (RESET ALL FLAGS)*/); uint8_t PUSH_AF(/*PUSH_rr*/); uint8_t RST_$30(/*RST_n*/);
     uint8_t RST_$38(/*RST_n*/); uint8_t RLC_B(); uint8_t RLC_C(); uint8_t RLC_D(); uint8_t RLC_E(); uint8_t RLC_H();
     uint8_t RLC_L(); uint8_t RLC_A(); uint8_t RRC_B(); uint8_t RRC_C(); uint8_t RRC_D(); uint8_t RRC_E();
     uint8_t RRC_H(); uint8_t RRC_L(); uint8_t RRC_A(); uint8_t RL_B(); uint8_t RL_C(); uint8_t RL_D(); uint8_t RL_E();
@@ -186,8 +186,8 @@ private:
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
 
-    uint8_t getFlags(FlagRegisters f);
-    void setFlags(FlagRegisters f);
+    uint8_t getFlags(FlagRegisters f) const;
+    void setFlags(FlagRegisters f, bool v) const;
 
     struct INSTRUCTION {
         std::string name;
