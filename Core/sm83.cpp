@@ -1121,3 +1121,189 @@ uint8_t sm83::ADD_SP_e() {
     SP = result;
     return 0;
 }
+
+uint8_t sm83::PREFIX() {
+    IR = read(PC);
+    PC++;
+
+    return (this->*prefixedTable[IR].operate)();
+}
+
+uint8_t sm83::RLCA() {
+    const uint8_t b7 = (A & 0b10000000) >> 7;
+    A = (A << 1) | b7;
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RRCA() {
+    const uint8_t b0 = A & 0x01;
+    A = (A >> 1) | (b0 << 7);
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RLA() {
+    const uint8_t b7 = (A & 0b10000000) >> 7;
+    A = (A << 1) | getFlags(c);
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RRA() {
+    const uint8_t b0 = A & 0x01;
+    A = (A >> 1) & (getFlags(c) << 7);
+    setFlags(z, false);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RLC_r(uint8_t &r1) {
+    const uint8_t b7 = (r1 & 0b10000000) >> 7;
+    const uint8_t result = (r1 << 1) | b7;
+    r1 = result;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RLC_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b7 = (data & 0b10000000) >> 7;
+    const uint8_t result = (data << 1) | b7;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::RRC_r(uint8_t &r1) {
+    const uint8_t b0 = r1 & 0x01;
+    r1 = (r1 >> 1) | (b0 << 7);
+    setFlags(z, r1 == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RRC_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b0 = data & 0x01;
+    const uint8_t result = (data >> 1) | (b0 << 7);
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::RL_r(uint8_t &r1) {
+    const uint8_t b7 = (r1 & 0b10000000) >> 7;
+    r1 = (r1 << 1) | getFlags(c);
+    setFlags(z, r1 == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RL_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b7 = (data & 0b10000000) >> 7;
+    const uint8_t result = (data << 1) | getFlags(c);
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::RR_r(uint8_t &r1) {
+    const uint8_t b0 = r1 & 0x01;
+    r1 = (r1 >> 1) | (b0 << 7);
+    setFlags(z, r1 == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::RR_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b0 = data & 0x01;
+    const uint8_t result = (data >> 1) | (getFlags(c) << 7);
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::SLA_r(uint8_t &r1) {
+    const uint8_t b7 = r1 & 0b10000000 >> 7;
+    r1 = r1 << 1;
+    setFlags(z, r1 == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::SLA_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b7 = (data & 0b10000000) >> 7;
+    const uint8_t result = data << 1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b7 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::SRA_r(uint8_t &r1) {
+    const uint8_t b0 = r1 & 0x01;
+    const uint8_t b7 = r1 & 0b10000000;
+    r1 = (r1 >> 1) | b7;
+    setFlags(z, r1 == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::SRA_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b0 = data & 0x01;
+    const uint8_t result = data >> 1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::SWAP_r(uint8_t &r1) {
+
+    return 0;
+}
