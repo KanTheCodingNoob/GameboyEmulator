@@ -7,8 +7,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-
 #include "Bus.h"
+
+class Bus;
+
 union REGISTER_PAIR {
     struct {
         uint8_t low;
