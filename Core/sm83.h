@@ -45,6 +45,12 @@ public:
     uint16_t SP = 0x0000;
     uint16_t PC = 0x0000;
 
+    bool IME = false;
+    bool IME_next = false;
+    bool halted = false;
+    bool halt_bug = false;
+    bool stopped = false;
+
     enum FlagRegisters {
         z = (1 << 7),
         n = (1 << 6),
@@ -66,11 +72,11 @@ public:
     uint8_t PUSH_rr(const uint16_t &rr1); uint8_t ADD_A_r(const uint8_t &r1) ; uint8_t ADC_A_r(const uint8_t &r1) ;
     uint8_t SBC_A_r(const uint8_t &r1); uint8_t CP_A_r(const uint8_t &r1); uint8_t INC_r(uint8_t &r1);
     uint8_t AND_A_r(const uint8_t &r1); uint8_t XOR_A_r(const uint8_t &r1); uint8_t ADD_HL_rr(const uint16_t &rr1);
-    uint8_t SUB_HL_rr(uint16_t &rr1); uint8_t RL_r(uint8_t &r1); uint8_t RLC_r(uint8_t &r1);
+    uint8_t RL_r(uint8_t &r1); uint8_t RLC_r(uint8_t &r1);
     uint8_t RRC_r(uint8_t &r1); uint8_t SRA_r(uint8_t &r1); uint8_t RR_r(uint8_t &r1); uint8_t SWAP_r(uint8_t &r1);
-    uint8_t SLA_r(uint8_t &r1); uint8_t SRL_r(uint8_t &r1); uint8_t BIT_b_r(uint8_t b, uint8_t &r1); uint8_t RES_b_r(uint8_t b, uint8_t &r1);
-    uint8_t DEC_A_r(uint8_t &r1); uint8_t OR_A_r(const uint8_t &r1); uint8_t SET_b_r(uint8_t &r1); uint8_t INC_rr(uint16_t &rr1);
-    uint8_t DEC_rr(uint16_t &rr1); uint8_t JR_cc_e(); uint8_t RET_cc(); uint8_t JP_cc_nn(); uint8_t CALL_cc_nn();
+    uint8_t SLA_r(uint8_t &r1); uint8_t SRL_r(uint8_t &r1); uint8_t BIT_b_r(uint8_t b, const uint8_t &r1); uint8_t RES_b_r(uint8_t b, uint8_t &r1);
+    uint8_t DEC_A_r(uint8_t &r1); uint8_t OR_A_r(const uint8_t &r1); uint8_t SET_b_r(uint8_t b, uint8_t &r1); uint8_t INC_rr(uint16_t &rr1);
+    uint8_t DEC_rr(uint16_t &rr1); uint8_t JR_cc_e(FlagRegisters f, bool v); uint8_t RET_cc(FlagRegisters f, bool v); uint8_t JP_cc_nn(FlagRegisters f, bool v); uint8_t CALL_cc_nn(FlagRegisters f, bool v);
     uint8_t RST_n(uint8_t n); uint8_t BIT_b_HLi(uint8_t b); uint8_t RES_b_HLi(uint8_t b); uint8_t SUB_A_r(const uint8_t &r1);
 
     // Actual opcode
@@ -80,7 +86,7 @@ public:
     uint8_t LD_nni_SP(); uint8_t LD_SP_HL(); uint8_t LD_BC_nn(/*LD_rr_nn*/); uint8_t INC_BC(/*INC_rr*/); uint8_t DEC_H(/*DEC_r*/);
     uint8_t LD_HL_SP_plus_e(); uint8_t ADD_A_HLi(); uint8_t DEC_B(); uint8_t INC_B(/*INC_r*/); uint8_t INC_C(/*INC_r*/);
     uint8_t ADD_A_n(); uint8_t ADC_A_HLi(); uint8_t ADC_A_n(); uint8_t SUB_A_HLi(); uint8_t DEC_D(/*DEC_r*/);
-    uint8_t SUB_A_n(); uint8_t SBC_A_HLi(); uint8_t SBC_A_n(); uint8_t SUB_HLi_A(); uint8_t SUB_n_A(); uint8_t LD_E_n(/*LD_r_n*/);
+    uint8_t SUB_A_n(); uint8_t SBC_A_HLi(); uint8_t SBC_A_n(); uint8_t LD_E_n(/*LD_r_n*/);
     uint8_t CP_A_HLi(); uint8_t CP_A_n(); uint8_t INC_HLi(); uint8_t ADD_HL_BC(/*ADD_HL_rr*/); uint8_t LD_HL_nn(/*LD_rr_nn*/);
     uint8_t DEC_HLi(); uint8_t AND_A_HLi(); uint8_t AND_A_n();  uint8_t OR_A_HLi(); uint8_t OR_A_n(); uint8_t INC_HL(/*INC_rr*/);
     uint8_t XOR_A_HLi(); uint8_t XOR_A_n(); uint8_t CCF(); uint8_t SCF(); uint8_t DAA(); uint8_t CPL(); uint8_t JR_Z_e(/*JR_cc_e*/);
@@ -90,8 +96,10 @@ public:
     uint8_t SLA_HLi(); uint8_t SRA_HLi(); uint8_t SWAP_HLi(); uint8_t INC_D(/*INC_r*/); uint8_t DEC_E(/*DEC_r*/);
     uint8_t INC_E(/*INC_r*/); uint8_t JR_NZ_e(/*JR_rr_e*/); uint8_t LD_H_n(/*LD_r_n*/); uint8_t ADD_HL_HL(/*ADD_rr_rr*/);
     uint8_t SRL_HLi(); uint8_t LD_D_n(/*LD_r_n*/); uint8_t ADD_HL_DE(/*ADD_HL_rr*/);
-    uint8_t SET_b_HLi(); uint8_t JP_nn(); uint8_t JP_HL(); uint8_t JR_e(); uint8_t CALL_nn();
-    uint8_t RET(); uint8_t RETI(); uint8_t HALT(); uint8_t STOP_n(); uint8_t DI(); uint8_t EI(); uint8_t NOP();
+    uint8_t SET_b_HLi(uint8_t b); uint8_t JP_nn(); uint8_t JP_HL(); uint8_t JR_e(); uint8_t CALL_nn();
+    uint8_t RET(); uint8_t RETI(); uint8_t HALT();
+
+    uint8_t STOP_n(); uint8_t DI(); uint8_t EI(); uint8_t NOP();
     uint8_t ILLEGAL(); uint8_t INC_L(/*INC_r*/); uint8_t DEC_L(/*DEC_r*/); uint8_t LD_L_n(/*LD_R_n*/); uint8_t JR_NC_e(/*JR_cc_e*/);
     uint8_t LD_SP_nn(/*LD_rr_nn*/); uint8_t LD_HLi_A(/*LD_HLi_r*/); uint8_t INC_SP(/*INC_rr*/); uint8_t JR_C_e(/*JR_cc_e*/);
     uint8_t ADD_HL_SP(/*ADD_rr_rr*/); uint8_t DEC_SP(/*DEC_rr*/); uint8_t INC_A(/*INC_A*/); uint8_t DEC_A(/*DEC_A*/);
@@ -176,8 +184,11 @@ public:
 
     void clock();
 
+    void checkInterrupts();
+
     uint8_t IR = 0x00;
-    uint8_t IE = 0x00;
+    uint8_t IE = 0xFF;
+    uint8_t IF = 0x00;
     uint8_t cycle = 0;
 
 private:

@@ -536,14 +536,70 @@ void sm83::write(uint16_t addr, uint8_t data) {
 }
 
 void sm83::clock() {
+    // Handle HALT state
+    if (halted) {
+        IF = read(0xFF0F);
+        if ((IE & IF) != 0) {
+            // Wake up on any pending interrupt
+            halted = false;
+        } else {
+            return; // Stay halted
+        }
+    }
+
+    if (stopped) {
+        // Check Joypad input (P1 register at 0xFF00)
+        uint8_t joy = read(0xFF00);
+        if ((joy & 0x0F) != 0x0F) {
+            // One of the buttons pressed, wake up
+            stopped = false;
+        } else {
+            return; // stay stopped
+        }
+    }
+
     if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
         cycle = opcodeTable[IR].cycles / 4; // Set cycles
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
         cycle -= additionalCycles;
+
+        checkInterrupts();
     }
     cycle--;
+}
+
+void sm83::checkInterrupts() {
+    IF = read(0xFF0F);
+    uint8_t fired = IE & IF;
+
+    if (IME && fired) {
+        halted = false;  // wake up
+        IME = false;     // disable further interrupts
+
+        for (int i = 0; i < 5; i++) {
+            if (fired & (1 << i)) {
+                write(0xFF0F, IF & ~(1 << i)); // clear IF bit
+
+                // Push PC onto stack
+                SP--;
+                write(SP, (PC >> 8) & 0xFF);
+                SP--;
+                write(SP, PC & 0xFF);
+
+                static const uint16_t vectors[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
+                PC = vectors[i];
+                break;
+            }
+        }
+    }
+
+    // Apply delayed EI
+    if (IME_next) {
+        IME = true;
+        IME_next = false;
+    }
 }
 
 void sm83::setFlags(const FlagRegisters f, const bool v) const {
@@ -1304,6 +1360,1988 @@ uint8_t sm83::SRA_HLi() {
 }
 
 uint8_t sm83::SWAP_r(uint8_t &r1) {
-
+    const uint8_t firstHalf = r1 << 4;
+    const uint8_t secondHalf = r1 >> 4;
+    const uint8_t result = firstHalf | secondHalf;
+    r1 = result;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
     return 0;
+}
+
+uint8_t sm83::SWAP_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t firstHalf = data << 4;
+    const uint8_t secondHalf = data >> 4;
+    const uint8_t result = firstHalf | secondHalf;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, false);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::SRL_r(uint8_t &r1) {
+    const uint8_t b0 = r1 & 0x01;
+    const uint8_t result = (r1 >> 1);
+    r1 = result;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    return 0;
+}
+
+uint8_t sm83::SRL_HLi() {
+    const uint8_t data = read(HL);
+    const uint8_t b0 = data & 0x01;
+    const uint8_t result = data >> 1;
+    setFlags(z, result == 0);
+    setFlags(n, false);
+    setFlags(h, false);
+    setFlags(c, b0 == 0x01);
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::BIT_b_r(const uint8_t b, const uint8_t &r1) {
+    const uint8_t mask = 1 << b;
+    const bool bitIsZero = (r1 & mask) == 0;
+    setFlags(z, bitIsZero);
+    setFlags(n, false);
+    setFlags(h, true);
+    return 0;
+}
+
+uint8_t sm83::BIT_b_HLi(const uint8_t b) {
+    const uint8_t mask = 1 << b;
+    const bool bitIsZero = (read(HL) & mask) == 0;
+    setFlags(z, bitIsZero);
+    setFlags(n, false);
+    setFlags(h, true);
+    return 0;
+}
+
+uint8_t sm83::RES_b_r(const uint8_t b, uint8_t &r1) {
+    const uint8_t mask = 1 << b;
+    const uint8_t result = r1 & ~mask;
+    r1 = result;
+    return 0;
+}
+
+uint8_t sm83::RES_b_HLi(const uint8_t b) {
+    const uint8_t data = read(HL);
+    const uint8_t mask = 1 << b;
+    const uint8_t result = data & ~mask;
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::SET_b_r(const uint8_t b, uint8_t &r1) {
+    const uint8_t mask = 1 << b;
+    const uint8_t result = r1 | mask;
+    r1 = result;
+    return 0;
+}
+
+uint8_t sm83::SET_b_HLi(const uint8_t b) {
+    const uint8_t data = read(HL);
+    const uint8_t mask = 1 << b;
+    const uint8_t result = data | mask;
+    write(HL, result);
+    return 0;
+}
+
+uint8_t sm83::JP_nn() {
+    const uint8_t nn_lsb = read(PC++);
+    const uint8_t nn_msb = read(PC++);
+    const uint16_t nn = nn_msb << 8 | nn_lsb;
+    PC = nn;
+    return 0;
+}
+
+uint8_t sm83::JP_HL() {
+    PC = HL;
+    return 0;
+}
+
+uint8_t sm83::JP_cc_nn(const FlagRegisters f, const bool v) {
+    const uint8_t nn_lsb = read(PC++);
+    const uint8_t nn_msb = read(PC++);
+    const uint16_t nn = nn_msb << 8 | nn_lsb;
+    if (getFlags(f) == v) {
+        PC = nn;
+        return 0;
+    }
+    return 1;
+}
+
+uint8_t sm83::JR_e() {
+    const auto e = static_cast<int8_t>(read(PC++));
+    PC = static_cast<uint16_t>(PC + e);
+    return 0;
+}
+
+uint8_t sm83::JR_cc_e(const FlagRegisters f, const bool v) {
+    const auto e = static_cast<int8_t>(read(PC++));
+    if (getFlags(f) == v) {
+        PC = static_cast<uint16_t>(PC + e);
+    }
+    return 0;
+}
+
+uint8_t sm83::CALL_nn() {
+    const uint8_t nn_lsb = read(PC++);
+    const uint8_t nn_msb = read(PC++);
+    const uint16_t nn = nn_msb << 8 | nn_lsb;
+    SP--;
+    write(SP, (PC >> 8) & 0xFF);
+    SP--;
+    write(SP, PC & 0xFF);
+    PC = nn;
+    return 0;
+}
+
+uint8_t sm83::CALL_cc_nn(const FlagRegisters f, const bool v) {
+    const uint8_t nn_lsb = read(PC++);
+    const uint8_t nn_msb = read(PC++);
+    const uint16_t nn = nn_msb << 8 | nn_lsb;
+    if (getFlags(f) == v) {
+        SP--;
+        write(SP, (PC >> 8) & 0xFF);
+        SP--;
+        write(SP, PC & 0xFF);
+        PC = nn;
+        return 0;
+    }
+    return 3;
+}
+
+uint8_t sm83::RET() {
+    const uint8_t nn_lsb = read(PC++);
+    const uint8_t nn_msb = read(PC++);
+    PC = nn_msb << 8 | nn_lsb;
+    return 0;
+}
+
+uint8_t sm83::RET_cc(const FlagRegisters f, const bool v) {
+    if (getFlags(f) == v) {
+        const uint8_t nn_lsb = read(PC++);
+        const uint8_t nn_msb = read(PC++);
+        PC = nn_msb << 8 | nn_lsb;
+        return 0;
+    }
+    return 3;
+}
+
+uint8_t sm83::RETI() {
+    const uint8_t nn_lsb = read(SP++);
+    const uint8_t nn_msb = read(SP++);
+    PC = nn_msb << 8 | nn_lsb;
+    IME = true;
+    return 0;
+}
+
+uint8_t sm83::RST_n(const uint8_t n) {
+    SP--;
+    write(SP, (PC >> 8) & 0xFF);
+    SP--;
+    write(SP, PC & 0xFF);
+    PC = static_cast<uint16_t>(n);
+    return 0;
+}
+
+uint8_t sm83::HALT() {
+    IF = read(0xFF0F); // Interrupt Flag register
+    uint8_t pending = IE & IF;
+
+    if (!IME && pending == 0) {
+        // HALT bug condition: IME=0, no interrupt pending
+        halt_bug = true;
+        halted = false;
+    } else {
+        // Normal HALT: CPU suspends until an interrupt is requested
+        halted = true;
+    }
+
+    return 0; // HALT itself takes 1 machine cycle
+}
+
+uint8_t sm83::STOP_n() {
+    // Read and discard the following byte
+    uint8_t unused = read(PC++);
+
+    // Handle STOP behavior
+    stopped = true;
+    return 0;
+}
+
+uint8_t sm83::DI() {
+    IME = false;
+    return 0;
+}
+
+uint8_t sm83::EI() {
+    IME = true;
+    return 0;
+}
+
+uint8_t sm83::NOP() {
+    return 0;
+}
+
+uint8_t sm83::ILLEGAL() {
+    return 0;
+}
+
+uint8_t sm83::LD_B_n(/*LD_R_n*/) {
+    return LD_r_n(B);
+}
+
+uint8_t sm83::LD_DE_nn(/*LD_rr_nn*/) {
+    return LD_rr_nn(DE);
+}
+
+uint8_t sm83::LD_BC_nn() {
+    return LD_rr_nn(BC);
+}
+
+uint8_t sm83::INC_BC() {
+    return INC_rr(BC);
+}
+
+uint8_t sm83::DEC_H() {
+    return DEC_A_r(H);
+}
+
+uint8_t sm83::DEC_B() {
+    return DEC_A_r(B);
+}
+
+uint8_t sm83::INC_B() {
+    return INC_r(B);
+}
+
+uint8_t sm83::INC_C() {
+    return INC_r(C);
+}
+
+uint8_t sm83::DEC_D() {
+    return DEC_A_r(D);
+}
+
+uint8_t sm83::LD_E_n() {
+    return LD_r_n(E);
+}
+
+uint8_t sm83::ADD_HL_BC() {
+    return ADD_HL_rr(BC);
+}
+
+uint8_t sm83::LD_HL_nn() {
+    return LD_rr_nn(HL);
+}
+
+uint8_t sm83::INC_HL() {
+    return INC_rr(HL);
+}
+
+uint8_t sm83::JR_Z_e() {
+    return JR_cc_e(z, true);
+}
+
+uint8_t sm83::DEC_BC() {
+    return DEC_rr(BC);
+}
+
+uint8_t sm83::DEC_C() {
+    return DEC_A_r(C);
+}
+
+uint8_t sm83::LD_C_n() {
+    return LD_r_n(C);
+}
+
+uint8_t sm83::LD_A_HLi() {
+    return LD_r_HLi(A);
+}
+
+uint8_t sm83::DEC_DE() {
+    return DEC_rr(DE);
+}
+
+uint8_t sm83::DEC_HL() {
+    return DEC_rr(HL);
+}
+
+uint8_t sm83::INC_DE() {
+    return INC_rr(DE);
+}
+
+uint8_t sm83::INC_H() {
+    return INC_r(H);
+}
+
+uint8_t sm83::INC_D() {
+    return INC_r(D);
+}
+
+uint8_t sm83::DEC_E() {
+    return DEC_A_r(E);
+}
+
+uint8_t sm83::INC_E() {
+    return INC_r(E);
+}
+
+uint8_t sm83::JR_NZ_e() {
+    return JR_cc_e(z, false);
+}
+
+uint8_t sm83::LD_H_n() {
+    return LD_r_n(H);
+}
+
+uint8_t sm83::ADD_HL_HL() {
+    return ADD_HL_rr(HL);
+}
+
+uint8_t sm83::LD_D_n() {
+    return LD_r_n(D);
+}
+
+uint8_t sm83::ADD_HL_DE() {
+    return ADD_HL_rr(DE);
+}
+
+uint8_t sm83::INC_L() {
+    return INC_r(L);
+}
+
+uint8_t sm83::DEC_L() {
+    return DEC_A_r(L);
+}
+
+uint8_t sm83::LD_L_n() {
+    return LD_r_n(L);
+}
+
+uint8_t sm83::JR_NC_e() {
+    return JR_cc_e(c, false);
+}
+
+uint8_t sm83::LD_SP_nn() {
+    return LD_rr_nn(SP);
+}
+
+uint8_t sm83::LD_HLi_A() {
+    return LD_HLi_r(A);
+}
+
+uint8_t sm83::INC_SP() {
+    return INC_rr(SP);
+}
+
+uint8_t sm83::JR_C_e() {
+    return JR_cc_e(c, true);
+}
+
+uint8_t sm83::ADD_HL_SP() {
+    return ADD_HL_rr(SP);
+}
+
+uint8_t sm83::DEC_SP() {
+    return DEC_rr(SP);
+}
+
+uint8_t sm83::INC_A() {
+    return INC_r(A);
+}
+
+uint8_t sm83::DEC_A() {
+    return DEC_A_r(A);
+}
+
+uint8_t sm83::LD_A_n() {
+    return LD_r_n(A);
+}
+
+uint8_t sm83::LD_B_B() {
+    return LD_r_r(B, B);
+}
+
+uint8_t sm83::LD_B_C() {
+    return LD_r_r(B, C);
+}
+
+uint8_t sm83::LD_B_D() {
+    return LD_r_r(B, D);
+}
+
+uint8_t sm83::LD_B_E() {
+    return LD_r_r(B, E);
+}
+
+uint8_t sm83::LD_B_H() {
+    return LD_r_r(B, H);
+}
+
+uint8_t sm83::LD_B_L() {
+    return LD_r_r(B, L);
+}
+
+uint8_t sm83::LD_B_HLi() {
+    return LD_r_HLi(B);
+}
+
+uint8_t sm83::LD_B_A() {
+    return LD_r_r(B, A);
+}
+
+uint8_t sm83::LD_C_B() {
+    return LD_r_r(C, B);
+}
+
+uint8_t sm83::LD_C_C() {
+    return LD_r_r(C, C);
+}
+
+uint8_t sm83::LD_C_D() {
+    return LD_r_r(C, D);
+}
+
+uint8_t sm83::LD_C_E() {
+    return LD_r_r(C, E);
+}
+
+uint8_t sm83::LD_C_H() {
+    return LD_r_r(C, H);
+}
+
+uint8_t sm83::LD_C_L() {
+    return LD_r_r(C, L);
+}
+
+uint8_t sm83::LD_C_HLi() {
+    return LD_r_HLi(C);
+}
+
+uint8_t sm83::LD_C_A() {
+    return LD_r_r(C, A);
+}
+
+uint8_t sm83::LD_D_B() {
+    return LD_r_r(D, B);
+}
+
+uint8_t sm83::LD_D_C() {
+    return LD_r_r(D, C);
+}
+
+uint8_t sm83::LD_D_D() {
+    return LD_r_r(D, D);
+}
+
+uint8_t sm83::LD_D_E() {
+    return LD_r_r(D, E);
+}
+
+uint8_t sm83::LD_D_H() {
+    return LD_r_r(D, H);
+}
+
+uint8_t sm83::LD_D_L() {
+    return LD_r_r(D, L);
+}
+
+uint8_t sm83::LD_D_HLi() {
+    return LD_r_HLi(D);
+}
+
+uint8_t sm83::LD_D_A() {
+    return LD_r_r(D, A);
+}
+
+uint8_t sm83::LD_E_B() {
+    return LD_r_r(E, B);
+}
+
+uint8_t sm83::LD_H_B() {
+    return LD_r_r(H, B);
+}
+
+uint8_t sm83::LD_H_C() {
+    return LD_r_r(H, C);
+}
+
+uint8_t sm83::LD_H_D() {
+    return LD_r_r(H, D);
+}
+
+uint8_t sm83::LD_H_E() {
+    return LD_r_r(H, E);
+}
+
+uint8_t sm83::LD_H_H() {
+    return LD_r_r(H, H);
+}
+
+uint8_t sm83::LD_H_L() {
+    return LD_r_r(H, L);
+}
+
+uint8_t sm83::LD_H_HLi() {
+    return LD_r_HLi(H);
+}
+
+uint8_t sm83::LD_E_C() {
+    return LD_r_r(E, C);
+}
+
+uint8_t sm83::LD_E_D() {
+    return LD_r_r(E, D);
+}
+
+uint8_t sm83::LD_E_E() {
+    return LD_r_r(E, E);
+}
+
+uint8_t sm83::LD_E_H() {
+    return LD_r_r(E, H);
+}
+
+uint8_t sm83::LD_E_L() {
+    return LD_r_r(E, L);
+}
+
+uint8_t sm83::LD_E_HLi() {
+    return LD_r_HLi(E);
+}
+
+uint8_t sm83::LD_E_A() {
+    return LD_r_r(E, A);
+}
+
+uint8_t sm83::LD_H_A() {
+    return LD_r_r(H, A);
+}
+
+uint8_t sm83::LD_L_B() {
+    return LD_r_r(L, B);
+}
+
+uint8_t sm83::LD_L_C() {
+    return LD_r_r(L, C);
+}
+
+uint8_t sm83::LD_L_D() {
+    return LD_r_r(L, D);
+}
+
+uint8_t sm83::LD_L_E() {
+    return LD_r_r(L, E);
+}
+
+uint8_t sm83::LD_L_H() {
+    return LD_r_r(L, H);
+}
+
+uint8_t sm83::LD_L_L() {
+    return LD_r_r(L, L);
+}
+
+uint8_t sm83::LD_L_HLi() {
+    return LD_r_HLi(L);
+}
+
+uint8_t sm83::LD_L_A() {
+    return LD_r_r(L, A);
+}
+
+uint8_t sm83::LD_HLi_B() {
+    return LD_HLi_r(B);
+}
+
+uint8_t sm83::LD_HLi_C() {
+    return LD_HLi_r(C);
+}
+
+uint8_t sm83::LD_HLi_D() {
+    return LD_HLi_r(D);
+}
+
+uint8_t sm83::LD_HLi_E() {
+    return LD_HLi_r(E);
+}
+
+uint8_t sm83::LD_HLi_H() {
+    return LD_HLi_r(H);
+}
+
+uint8_t sm83::LD_HLi_L() {
+    return LD_HLi_r(L);
+}
+
+uint8_t sm83::LD_A_B() {
+    return LD_r_r(A, B);
+}
+
+uint8_t sm83::LD_A_C() {
+    return LD_r_r(A, C);
+}
+
+uint8_t sm83::LD_A_D() {
+    return LD_r_r(A, D);
+}
+
+uint8_t sm83::LD_A_E() {
+    return LD_r_r(A, E);
+}
+
+uint8_t sm83::LD_A_H() {
+    return LD_r_r(A, H);
+}
+
+uint8_t sm83::LD_A_L() {
+    return LD_r_r(A, L);
+}
+
+uint8_t sm83::LD_A_A() {
+    return LD_r_r(A, A);
+}
+
+uint8_t sm83::ADD_A_B() {
+    return ADD_A_r(B);
+}
+
+uint8_t sm83::ADD_A_C() {
+    return ADD_A_r(C);
+}
+
+uint8_t sm83::ADD_A_D() {
+    return ADD_A_r(D);
+}
+
+uint8_t sm83::ADD_A_E() {
+    return ADD_A_r(E);
+}
+
+uint8_t sm83::ADD_A_H() {
+    return ADD_A_r(H);
+}
+
+uint8_t sm83::ADD_A_L() {
+    return ADD_A_r(L);
+}
+
+uint8_t sm83::ADD_A_A() {
+    return ADD_A_r(A);
+}
+
+uint8_t sm83::ADC_A_B() {
+    return ADC_A_r(B);
+}
+
+uint8_t sm83::ADC_A_C() {
+    return ADC_A_r(C);
+}
+
+uint8_t sm83::ADC_A_D() {
+    return ADC_A_r(D);
+}
+
+uint8_t sm83::ADC_A_E() {
+    return ADC_A_r(E);
+}
+
+uint8_t sm83::ADC_A_H() {
+    return ADC_A_r(H);
+}
+
+uint8_t sm83::ADC_A_L() {
+    return ADC_A_r(L);
+}
+
+uint8_t sm83::ADC_A_A() {
+    return ADC_A_r(A);
+}
+
+uint8_t sm83::SUB_A_B() {
+    return SUB_A_r(B);
+}
+
+uint8_t sm83::SUB_A_C() {
+    return SUB_A_r(C);
+}
+
+uint8_t sm83::SUB_A_D() {
+    return SUB_A_r(D);
+}
+
+uint8_t sm83::SUB_A_E() {
+    return SUB_A_r(E);
+}
+
+uint8_t sm83::SUB_A_H() {
+    return SUB_A_r(H);
+}
+
+uint8_t sm83::SUB_A_L() {
+    return SUB_A_r(L);
+}
+
+uint8_t sm83::SUB_A_A() {
+    return SUB_A_r(A);
+}
+
+uint8_t sm83::SBC_A_B() {
+    return SBC_A_r(B);
+}
+
+uint8_t sm83::SBC_A_C() {
+    return SBC_A_r(C);
+}
+
+uint8_t sm83::SBC_A_D() {
+    return SBC_A_r(D);
+}
+
+uint8_t sm83::SBC_A_E() {
+    return SBC_A_r(E);
+}
+
+uint8_t sm83::SBC_A_H() {
+    return SBC_A_r(H);
+}
+
+uint8_t sm83::SBC_A_L() {
+    return SBC_A_r(L);
+}
+
+uint8_t sm83::SBC_A_A() {
+    return SBC_A_r(A);
+}
+
+uint8_t sm83::AND_A_B() {
+    return AND_A_r(B);
+}
+
+uint8_t sm83::AND_A_C() {
+    return AND_A_r(C);
+}
+
+uint8_t sm83::AND_A_D() {
+    return AND_A_r(D);
+}
+
+uint8_t sm83::AND_A_E() {
+    return AND_A_r(E);
+}
+
+uint8_t sm83::AND_A_H() {
+    return AND_A_r(H);
+}
+
+uint8_t sm83::AND_A_L() {
+    return AND_A_r(L);
+}
+
+uint8_t sm83::AND_A_A() {
+    return AND_A_r(A);
+}
+
+uint8_t sm83::OR_A_B() {
+    return OR_A_r(B);
+}
+
+uint8_t sm83::OR_A_C() {
+    return OR_A_r(C);
+}
+
+uint8_t sm83::XOR_A_B() {
+    return XOR_A_r(B);
+}
+
+uint8_t sm83::XOR_A_C() {
+    return XOR_A_r(C);
+}
+
+uint8_t sm83::XOR_A_D() {
+    return XOR_A_r(D);
+}
+
+uint8_t sm83::XOR_A_E() {
+    return XOR_A_r(E);
+}
+
+uint8_t sm83::XOR_A_H() {
+    return XOR_A_r(H);
+}
+
+uint8_t sm83::XOR_A_L() {
+    return XOR_A_r(L);
+}
+
+uint8_t sm83::XOR_A_A() {
+    return XOR_A_r(A);
+}
+
+uint8_t sm83::OR_B_A() {
+    return OR_A_r(B);
+}
+
+uint8_t sm83::OR_A_D() {
+    return OR_A_r(D);
+}
+
+uint8_t sm83::OR_A_E() {
+    return OR_A_r(E);
+}
+
+uint8_t sm83::OR_A_H() {
+    return OR_A_r(H);
+}
+
+uint8_t sm83::OR_A_L() {
+    return OR_A_r(L);
+}
+
+uint8_t sm83::OR_A_A() {
+    return OR_A_r(A);
+}
+
+uint8_t sm83::CP_A_B() {
+    return CP_A_r(B);
+}
+
+uint8_t sm83::CP_A_C() {
+    return CP_A_r(C);
+}
+
+uint8_t sm83::CP_A_D() {
+    return CP_A_r(D);
+}
+
+uint8_t sm83::CP_A_E() {
+    return CP_A_r(E);
+}
+
+uint8_t sm83::CP_A_H() {
+    return CP_A_r(H);
+}
+
+uint8_t sm83::CP_A_L() {
+    return CP_A_r(L);
+}
+
+uint8_t sm83::CP_A_A() {
+    return CP_A_r(A);
+}
+
+uint8_t sm83::RET_NZ() {
+    return RET_cc(z, false);
+}
+
+uint8_t sm83::POP_BC() {
+    return POP_rr(BC);
+}
+
+uint8_t sm83::JP_NZ_nn() {
+    return JP_cc_nn(z, false);
+}
+
+uint8_t sm83::CALL_NZ_nn() {
+    return CALL_cc_nn(z, false);
+}
+
+uint8_t sm83::PUSH_BC() {
+    return PUSH_rr(BC);
+}
+
+uint8_t sm83::RST_$00() {
+    return RST_n(0x00);
+}
+
+uint8_t sm83::RET_Z() {
+    return RET_cc(z, true);
+}
+
+uint8_t sm83::JP_Z_nn() {
+    return JP_cc_nn(z, true);
+}
+
+uint8_t sm83::CALL_Z_nn() {
+    return CALL_cc_nn(z, true);
+}
+
+uint8_t sm83::RST_$08() {
+    return RST_n(0x08);
+}
+
+uint8_t sm83::RET_NC() {
+    return RET_cc(c, false);
+}
+
+uint8_t sm83::POP_DE() {
+    return POP_rr(DE);
+}
+
+uint8_t sm83::JP_NC_nn() {
+    return JP_cc_nn(c, false);
+}
+
+uint8_t sm83::CALL_NC_nn() {
+    return CALL_cc_nn(c, false);
+}
+
+uint8_t sm83::PUSH_DE() {
+    return PUSH_rr(DE);
+}
+
+uint8_t sm83::RST_$10() {
+    return RST_n(0x10);
+}
+
+uint8_t sm83::RET_C() {
+    return RET_cc(c, true);
+}
+
+uint8_t sm83::JP_C_nn() {
+    return JP_cc_nn(c, true);
+}
+
+uint8_t sm83::CALL_C_nn() {
+    return CALL_cc_nn(c, true);
+}
+
+uint8_t sm83::PUSH_HL() {
+    return PUSH_rr(HL);
+}
+
+uint8_t sm83::RST_$18() {
+    return RST_n(0x18);
+}
+
+uint8_t sm83::POP_HL() {
+    return POP_rr(HL);
+}
+
+uint8_t sm83::RST_$20() {
+    return RST_n(0x20);
+}
+
+uint8_t sm83::RST_$28() {
+    return RST_n(0x28);
+}
+
+uint8_t sm83::POP_AF() {
+    return POP_rr(AF);
+}
+
+uint8_t sm83::PUSH_AF() {
+    return PUSH_rr(AF);
+}
+
+uint8_t sm83::RST_$30() {
+    return RST_n(0x30);
+}
+
+uint8_t sm83::RST_$38() {
+    return RST_n(0x38);
+}
+
+uint8_t sm83::RLC_B() {
+    return RLC_r(B);
+}
+
+uint8_t sm83::RLC_C() {
+    return RLC_r(C);
+}
+
+uint8_t sm83::RLC_D() {
+    return RLC_r(D);
+}
+
+uint8_t sm83::RLC_E() {
+    return RLC_r(E);
+}
+
+uint8_t sm83::RLC_H() {
+    return RLC_r(H);
+}
+
+uint8_t sm83::RLC_L() {
+    return RLC_r(L);
+}
+
+uint8_t sm83::RLC_A() {
+    return RLC_r(A);
+}
+
+uint8_t sm83::RRC_B() {
+    return RRC_r(B);
+}
+
+uint8_t sm83::RRC_C() {
+    return RRC_r(C);
+}
+
+uint8_t sm83::RRC_D() {
+    return RRC_r(D);
+}
+
+uint8_t sm83::RRC_E() {
+    return RRC_r(E);
+}
+
+uint8_t sm83::RRC_H() {
+    return RRC_r(H);
+}
+
+uint8_t sm83::RRC_L() {
+    return RRC_r(L);
+}
+
+uint8_t sm83::RRC_A() {
+    return RRC_r(A);
+}
+
+uint8_t sm83::RL_B() {
+    return RL_r(B);
+}
+
+uint8_t sm83::RL_C() {
+    return RL_r(C);
+}
+
+uint8_t sm83::RL_D() {
+    return RL_r(D);
+}
+
+uint8_t sm83::RL_E() {
+    return RL_r(E);
+}
+
+uint8_t sm83::RL_H() {
+    return RL_r(H);
+}
+
+uint8_t sm83::RL_L() {
+    return RL_r(L);
+}
+
+uint8_t sm83::RL_A() {
+    return RL_r(A);
+}
+
+uint8_t sm83::RR_B() {
+    return RR_r(B);
+}
+
+uint8_t sm83::RR_C() {
+    return RR_r(C);
+}
+
+uint8_t sm83::RR_D() {
+    return RR_r(D);
+}
+
+uint8_t sm83::RR_E() {
+    return RR_r(E);
+}
+
+uint8_t sm83::RR_H() {
+    return RR_r(H);
+}
+
+uint8_t sm83::RR_L() {
+    return RR_r(L);
+}
+
+uint8_t sm83::RR_A() {
+    return RR_r(A);
+}
+
+uint8_t sm83::SLA_B() {
+    return SLA_r(B);
+}
+
+uint8_t sm83::SLA_C() {
+    return SLA_r(C);
+}
+
+uint8_t sm83::SLA_D() {
+    return SLA_r(D);
+}
+
+uint8_t sm83::SLA_E() {
+    return SLA_r(E);
+}
+
+uint8_t sm83::SLA_H() {
+    return SLA_r(H);
+}
+
+uint8_t sm83::SLA_L() {
+    return SLA_r(L);
+}
+
+uint8_t sm83::SLA_A() {
+    return SLA_r(A);
+}
+
+uint8_t sm83::SRA_B() {
+    return SRA_r(B);
+}
+
+uint8_t sm83::SRA_C() {
+    return SRA_r(C);
+}
+
+uint8_t sm83::SRA_D() {
+    return SRA_r(D);
+}
+
+uint8_t sm83::SRA_E() {
+    return SRA_r(E);
+}
+
+uint8_t sm83::SRA_H() {
+    return SRA_r(H);
+}
+
+uint8_t sm83::SRA_L() {
+    return SRA_r(L);
+}
+
+uint8_t sm83::SRA_A() {
+    return SRA_r(A);
+}
+
+uint8_t sm83::SWAP_B() {
+    return SWAP_r(B);
+}
+
+uint8_t sm83::SWAP_C() {
+    return SWAP_r(C);
+}
+
+uint8_t sm83::SWAP_D() {
+    return SWAP_r(D);
+}
+
+uint8_t sm83::SWAP_E() {
+    return SWAP_r(E);
+}
+
+uint8_t sm83::SWAP_H() {
+    return SWAP_r(H);
+}
+
+uint8_t sm83::SWAP_L() {
+    return SWAP_r(L);
+}
+
+uint8_t sm83::SWAP_A() {
+    return SWAP_r(A);
+}
+
+uint8_t sm83::SRL_B() {
+    return SRL_r(B);
+}
+
+uint8_t sm83::SRL_C() {
+    return SRL_r(C);
+}
+
+uint8_t sm83::SRL_D() {
+    return SRL_r(D);
+}
+
+uint8_t sm83::SRL_E() {
+    return SRL_r(E);
+}
+
+uint8_t sm83::SRL_H() {
+    return SRL_r(H);
+}
+
+uint8_t sm83::SRL_L() {
+    return SRL_r(L);
+}
+
+uint8_t sm83::SRL_A() {
+    return SRL_r(A);
+}
+
+uint8_t sm83::BIT_0_B() {
+    return BIT_b_r(0, B);
+}
+
+uint8_t sm83::BIT_0_C() {
+    return BIT_b_r(0, C);
+}
+
+uint8_t sm83::BIT_0_D() {
+    return BIT_b_r(0, D);
+}
+
+uint8_t sm83::BIT_0_E() {
+    return BIT_b_r(0, E);
+}
+
+uint8_t sm83::BIT_0_H() {
+    return BIT_b_r(0, H);
+}
+
+uint8_t sm83::BIT_0_L() {
+    return BIT_b_r(0, L);
+}
+
+uint8_t sm83::BIT_0_HLi() {
+    return BIT_b_HLi(0);
+}
+
+uint8_t sm83::BIT_0_A() {
+    return BIT_b_r(0, A);
+}
+
+uint8_t sm83::BIT_1_B() {
+    return BIT_b_r(1, B);
+}
+
+uint8_t sm83::BIT_1_C() {
+    return BIT_b_r(1, C);
+}
+
+uint8_t sm83::BIT_1_D() {
+    return BIT_b_r(1, D);
+}
+
+uint8_t sm83::BIT_1_E() {
+    return BIT_b_r(1, E);
+}
+
+uint8_t sm83::BIT_1_H() {
+    return BIT_b_r(1, H);
+}
+
+uint8_t sm83::BIT_1_L() {
+    return BIT_b_r(1, L);
+}
+
+uint8_t sm83::BIT_1_HLi() {
+    return BIT_b_HLi(1);
+}
+
+uint8_t sm83::BIT_1_A() {
+    return BIT_b_r(1, A);
+}
+
+uint8_t sm83::BIT_2_B() {
+    return BIT_b_r(2, B);
+}
+
+uint8_t sm83::BIT_2_C() {
+    return BIT_b_r(2, C);
+}
+
+uint8_t sm83::BIT_2_D() {
+    return BIT_b_r(2, D);
+}
+
+uint8_t sm83::BIT_2_E() {
+    return BIT_b_r(2, E);
+}
+
+uint8_t sm83::BIT_2_H() {
+    return BIT_b_r(2, H);
+}
+
+uint8_t sm83::BIT_2_L() {
+    return BIT_b_r(2, L);
+}
+
+uint8_t sm83::BIT_2_HLi() {
+    return BIT_b_HLi(2);
+}
+
+uint8_t sm83::BIT_2_A() {
+    return BIT_b_r(2, A);
+}
+
+uint8_t sm83::BIT_3_B() {
+    return BIT_b_r(3, B);
+}
+
+uint8_t sm83::BIT_3_C() {
+    return BIT_b_r(3, C);
+}
+
+uint8_t sm83::BIT_3_D() {
+    return BIT_b_r(3, D);
+}
+
+uint8_t sm83::BIT_3_E() {
+    return BIT_b_r(3, E);
+}
+
+uint8_t sm83::BIT_3_H() {
+    return BIT_b_r(3, H);
+}
+
+uint8_t sm83::BIT_3_L() {
+    return BIT_b_r(3, L);
+}
+
+uint8_t sm83::BIT_3_HLi() {
+    return BIT_b_HLi(3);
+}
+
+uint8_t sm83::BIT_3_A() {
+    return BIT_b_r(3, A);
+}
+
+uint8_t sm83::BIT_4_B() {
+    return BIT_b_r(4, B);
+}
+
+uint8_t sm83::BIT_4_C() {
+    return BIT_b_r(4, C);
+}
+
+uint8_t sm83::BIT_4_D() {
+    return BIT_b_r(4, D);
+}
+
+uint8_t sm83::BIT_4_E() {
+    return BIT_b_r(4, E);
+}
+
+uint8_t sm83::BIT_4_H() {
+    return BIT_b_r(4, H);
+}
+
+uint8_t sm83::BIT_4_L() {
+    return BIT_b_r(4, L);
+}
+
+uint8_t sm83::BIT_4_HLi() {
+    return BIT_b_HLi(4);
+}
+
+uint8_t sm83::BIT_4_A() {
+    return BIT_b_r(4, A);
+}
+
+uint8_t sm83::BIT_5_B() {
+    return BIT_b_r(5, B);
+}
+
+uint8_t sm83::BIT_5_C() {
+    return BIT_b_r(5, C);
+}
+
+uint8_t sm83::BIT_5_D() {
+    return BIT_b_r(5, D);
+}
+
+uint8_t sm83::BIT_5_E() {
+    return BIT_b_r(5, E);
+}
+
+uint8_t sm83::BIT_5_H() {
+    return BIT_b_r(5, H);
+}
+
+uint8_t sm83::BIT_5_L() {
+    return BIT_b_r(5, L);
+}
+
+uint8_t sm83::BIT_5_HLi() {
+    return BIT_b_HLi(5);
+}
+
+uint8_t sm83::BIT_5_A() {
+    return BIT_b_r(5, A);
+}
+
+uint8_t sm83::BIT_6_B() {
+    return BIT_b_r(6, B);
+}
+
+uint8_t sm83::BIT_6_C() {
+    return BIT_b_r(6, C);
+}
+
+uint8_t sm83::BIT_6_D() {
+    return BIT_b_r(6, D);
+}
+
+uint8_t sm83::BIT_6_E() {
+    return BIT_b_r(6, E);
+}
+
+uint8_t sm83::BIT_6_H() {
+    return BIT_b_r(6, H);
+}
+
+uint8_t sm83::BIT_6_L() {
+    return BIT_b_r(6, L);
+}
+
+uint8_t sm83::BIT_6_HLi() {
+    return BIT_b_HLi(6);
+}
+
+uint8_t sm83::BIT_6_A() {
+    return BIT_b_r(6, A);
+}
+
+uint8_t sm83::BIT_7_B() {
+    return BIT_b_r(7, B);
+}
+
+uint8_t sm83::BIT_7_C() {
+    return BIT_b_r(7, C);
+}
+
+uint8_t sm83::BIT_7_D() {
+    return BIT_b_r(7, D);
+}
+
+uint8_t sm83::BIT_7_E() {
+    return BIT_b_r(7, E);
+}
+
+uint8_t sm83::BIT_7_H() {
+    return BIT_b_r(7, H);
+}
+
+uint8_t sm83::BIT_7_L() {
+    return BIT_b_r(7, L);
+}
+
+uint8_t sm83::BIT_7_HLi() {
+    return BIT_b_HLi(7);
+}
+
+uint8_t sm83::BIT_7_A() {
+    return BIT_b_r(7, A);
+}
+
+uint8_t sm83::RES_0_B() {
+    return RES_b_r(0, B);
+}
+
+uint8_t sm83::RES_0_C() {
+    return RES_b_r(0, C);
+}
+
+uint8_t sm83::RES_0_D() {
+    return RES_b_r(0, D);
+}
+
+uint8_t sm83::RES_0_E() {
+    return RES_b_r(0, E);
+}
+
+uint8_t sm83::RES_0_H() {
+    return RES_b_r(0, H);
+}
+
+uint8_t sm83::RES_0_L() {
+    return RES_b_r(0, L);
+}
+
+uint8_t sm83::RES_0_HLi() {
+    return RES_b_HLi(0);
+}
+
+uint8_t sm83::RES_0_A() {
+    return RES_b_r(0, A);
+}
+
+uint8_t sm83::RES_1_B() {
+    return RES_b_r(1, B);
+}
+
+uint8_t sm83::RES_1_C() {
+    return RES_b_r(1, C);
+}
+
+uint8_t sm83::RES_1_D() {
+    return RES_b_r(1, D);
+}
+
+uint8_t sm83::RES_1_E() {
+    return RES_b_r(1, E);
+}
+
+uint8_t sm83::RES_1_H() {
+    return RES_b_r(1, H);
+}
+
+uint8_t sm83::RES_1_L() {
+    return RES_b_r(1, L);
+}
+
+uint8_t sm83::RES_1_HLi() {
+    return RES_b_HLi(1);
+}
+
+uint8_t sm83::RES_1_A() {
+    return RES_b_r(1, A);
+}
+
+uint8_t sm83::RES_2_B() {
+    return RES_b_r(2, B);
+}
+
+uint8_t sm83::RES_2_C() {
+    return RES_b_r(2, C);
+}
+
+uint8_t sm83::RES_2_D() {
+    return RES_b_r(2, D);
+}
+
+uint8_t sm83::RES_2_E() {
+    return RES_b_r(2, E);
+}
+
+uint8_t sm83::RES_2_H() {
+    return RES_b_r(2, H);
+}
+
+uint8_t sm83::RES_2_L() {
+    return RES_b_r(2, L);
+}
+
+uint8_t sm83::RES_2_HLi() {
+    return RES_b_HLi(2);
+}
+
+uint8_t sm83::RES_2_A() {
+    return RES_b_r(2, A);
+}
+
+uint8_t sm83::RES_3_B() {
+    return RES_b_r(3, B);
+}
+
+uint8_t sm83::RES_3_C() {
+    return RES_b_r(3, C);
+}
+
+uint8_t sm83::RES_3_D() {
+    return RES_b_r(3, D);
+}
+
+uint8_t sm83::RES_3_E() {
+    return RES_b_r(3, E);
+}
+
+uint8_t sm83::RES_3_H() {
+    return RES_b_r(3, H);
+}
+
+uint8_t sm83::RES_3_L() {
+    return RES_b_r(3, L);
+}
+
+uint8_t sm83::RES_3_HLi() {
+    return RES_b_HLi(3);
+}
+
+uint8_t sm83::RES_3_A() {
+    return RES_b_r(3, A);
+}
+
+uint8_t sm83::RES_4_B() {
+    return RES_b_r(4, B);
+}
+
+uint8_t sm83::RES_4_C() {
+    return RES_b_r(4, C);
+}
+
+uint8_t sm83::RES_4_D() {
+    return RES_b_r(4, D);
+}
+
+uint8_t sm83::RES_4_E() {
+    return RES_b_r(4, E);
+}
+
+uint8_t sm83::RES_4_H() {
+    return RES_b_r(4, H);
+}
+
+uint8_t sm83::RES_4_L() {
+    return RES_b_r(4, L);
+}
+
+uint8_t sm83::RES_4_HLi() {
+    return RES_b_HLi(4);
+}
+
+uint8_t sm83::RES_4_A() {
+    return RES_b_r(4, A);
+}
+
+uint8_t sm83::RES_5_B() {
+    return RES_b_r(5, B);
+}
+
+uint8_t sm83::RES_5_C() {
+    return RES_b_r(5, C);
+}
+
+uint8_t sm83::RES_5_D() {
+    return RES_b_r(5, D);
+}
+
+uint8_t sm83::RES_5_E() {
+    return RES_b_r(5, E);
+}
+
+uint8_t sm83::RES_5_H() {
+    return RES_b_r(5, H);
+}
+
+uint8_t sm83::RES_5_L() {
+    return RES_b_r(5, L);
+}
+
+uint8_t sm83::RES_5_HLi() {
+    return RES_b_HLi(5);
+}
+
+uint8_t sm83::RES_5_A() {
+    return RES_b_r(5, A);
+}
+
+uint8_t sm83::RES_6_B() {
+    return RES_b_r(6, B);
+}
+
+uint8_t sm83::RES_6_C() {
+    return RES_b_r(6, C);
+}
+
+uint8_t sm83::RES_6_D() {
+    return RES_b_r(6, D);
+}
+
+uint8_t sm83::RES_6_E() {
+    return RES_b_r(6, E);
+}
+
+uint8_t sm83::RES_6_H() {
+    return RES_b_r(6, H);
+}
+
+uint8_t sm83::RES_6_L() {
+    return RES_b_r(6, L);
+}
+
+uint8_t sm83::RES_6_HLi() {
+    return RES_b_HLi(6);
+}
+
+uint8_t sm83::RES_6_A() {
+    return RES_b_r(6, A);
+}
+
+uint8_t sm83::RES_7_B() {
+    return RES_b_r(7, B);
+}
+
+uint8_t sm83::RES_7_C() {
+    return RES_b_r(7, C);
+}
+
+uint8_t sm83::RES_7_D() {
+    return RES_b_r(7, D);
+}
+
+uint8_t sm83::RES_7_E() {
+    return RES_b_r(7, E);
+}
+
+uint8_t sm83::RES_7_H() {
+    return RES_b_r(7, H);
+}
+
+uint8_t sm83::RES_7_L() {
+    return RES_b_r(7, L);
+}
+
+uint8_t sm83::RES_7_HLi() {
+    return RES_b_HLi(7);
+}
+
+uint8_t sm83::RES_7_A() {
+    return RES_b_r(7, A);
+}
+
+uint8_t sm83::SET_0_B() {
+    return SET_b_r(0, B);
+
+}
+
+uint8_t sm83::SET_0_C() {
+    return SET_b_r(0, C);
+}
+
+uint8_t sm83::SET_0_D() {
+    return SET_b_r(0, D);
+}
+
+uint8_t sm83::SET_0_E() {
+    return SET_b_r(0, E);
+}
+
+uint8_t sm83::SET_0_H() {
+    return SET_b_r(0, H);
+}
+
+uint8_t sm83::SET_0_L() {
+    return SET_b_r(0, L);
+}
+
+uint8_t sm83::SET_0_HLi() {
+    return SET_b_HLi(0);
+}
+
+uint8_t sm83::SET_0_A() {
+    return SET_b_r(0, A);
+}
+
+uint8_t sm83::SET_1_B() {
+    return SET_b_r(1, B);
+}
+
+uint8_t sm83::SET_1_C() {
+    return SET_b_r(1, C);
+}
+
+uint8_t sm83::SET_1_D() {
+    return SET_b_r(1, D);
+}
+
+uint8_t sm83::SET_1_E() {
+    return SET_b_r(1, E);
+}
+
+uint8_t sm83::SET_1_H() {
+    return SET_b_r(1, H);
+}
+
+uint8_t sm83::SET_1_L() {
+    return SET_b_r(1, L);
+}
+
+uint8_t sm83::SET_1_HLi() {
+    return SET_b_HLi(1);
+}
+
+uint8_t sm83::SET_1_A() {
+    return SET_b_r(1, A);
+}
+
+uint8_t sm83::SET_2_B() {
+    return SET_b_r(2, B);
+}
+
+uint8_t sm83::SET_2_C() {
+    return SET_b_r(2, C);
+}
+
+uint8_t sm83::SET_2_D() {
+    return SET_b_r(2, D);
+}
+
+uint8_t sm83::SET_2_E() {
+    return SET_b_r(2, E);
+}
+
+uint8_t sm83::SET_2_H() {
+    return SET_b_r(2, H);
+}
+
+uint8_t sm83::SET_2_L() {
+    return SET_b_r(2, L);
+}
+
+uint8_t sm83::SET_2_HLi() {
+    return SET_b_HLi(2);
+}
+
+uint8_t sm83::SET_2_A() {
+    return SET_b_r(2, A);
+}
+
+uint8_t sm83::SET_3_B() {
+    return SET_b_r(3, B);
+}
+
+uint8_t sm83::SET_3_C() {
+    return SET_b_r(3, C);
+}
+
+uint8_t sm83::SET_3_D() {
+    return SET_b_r(3, D);
+}
+
+uint8_t sm83::SET_3_E() {
+    return SET_b_r(3, E);
+}
+
+uint8_t sm83::SET_3_H() {
+    return SET_b_r(3, H);
+}
+
+uint8_t sm83::SET_3_L() {
+    return SET_b_r(3, L);
+}
+
+uint8_t sm83::SET_3_HLi() {
+    return SET_b_HLi(3);
+}
+
+uint8_t sm83::SET_3_A() {
+    return SET_b_r(3, A);
+}
+
+uint8_t sm83::SET_4_B() {
+    return SET_b_r(4, B);
+}
+
+uint8_t sm83::SET_4_C() {
+    return SET_b_r(4, C);
+}
+
+uint8_t sm83::SET_4_D() {
+    return SET_b_r(4, D);
+}
+
+uint8_t sm83::SET_4_E() {
+    return SET_b_r(4, E);
+}
+
+uint8_t sm83::SET_4_H() {
+    return SET_b_r(4, H);
+}
+
+uint8_t sm83::SET_4_L() {
+    return SET_b_r(4, L);
+}
+
+uint8_t sm83::SET_4_HLi() {
+    return SET_b_HLi(4);
+}
+
+uint8_t sm83::SET_4_A() {
+    return SET_b_r(4, A);
+}
+
+uint8_t sm83::SET_5_B() {
+    return SET_b_r(5, B);
+}
+
+uint8_t sm83::SET_5_C() {
+    return SET_b_r(5, C);
+}
+
+uint8_t sm83::SET_5_D() {
+    return SET_b_r(5, D);
+}
+
+uint8_t sm83::SET_5_E() {
+    return SET_b_r(5, E);
+}
+
+uint8_t sm83::SET_5_H() {
+    return SET_b_r(5, H);
+}
+
+uint8_t sm83::SET_5_L() {
+    return SET_b_r(5, L);
+}
+
+uint8_t sm83::SET_5_HLi() {
+    return SET_b_HLi(5);
+}
+
+uint8_t sm83::SET_5_A() {
+    return SET_b_r(5, A);
+}
+
+uint8_t sm83::SET_6_B() {
+    return SET_b_r(6, B);
+}
+
+uint8_t sm83::SET_6_C() {
+    return SET_b_r(6, C);
+}
+
+uint8_t sm83::SET_6_D() {
+    return SET_b_r(6, D);
+}
+
+uint8_t sm83::SET_6_E() {
+    return SET_b_r(6, E);
+}
+
+uint8_t sm83::SET_6_H() {
+    return SET_b_r(6, H);
+}
+
+uint8_t sm83::SET_6_L() {
+    return SET_b_r(6, L);
+}
+
+uint8_t sm83::SET_6_HLi() {
+    return SET_b_HLi(6);
+}
+
+uint8_t sm83::SET_6_A() {
+    return SET_b_r(6, A);
+}
+
+uint8_t sm83::SET_7_B() {
+    return SET_b_r(7, B);
+}
+
+uint8_t sm83::SET_7_C() {
+    return SET_b_r(7, C);
+}
+
+uint8_t sm83::SET_7_D() {
+    return SET_b_r(7, D);
+}
+
+uint8_t sm83::SET_7_E() {
+    return SET_b_r(7, E);
+}
+
+uint8_t sm83::SET_7_H() {
+    return SET_b_r(7, H);
+}
+
+uint8_t sm83::SET_7_L() {
+    return SET_b_r(7, L);
+}
+
+uint8_t sm83::SET_7_HLi() {
+    return SET_b_HLi(7);
+}
+
+uint8_t sm83::SET_7_A() {
+    return SET_b_r(7, A);
 }
