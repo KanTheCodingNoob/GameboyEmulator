@@ -3,11 +3,9 @@
 //
 #pragma once
 
-#define SM83_H
 #include <cstdint>
 #include <string>
 #include <vector>
-#include "Bus.h"
 
 class Bus;
 
@@ -45,7 +43,7 @@ public:
     uint16_t& HL;
 
     uint16_t SP = 0x0000;
-    uint16_t PC = 0x0000;
+    uint16_t PC = 0x0100;
 
     bool IME = false;
     bool IME_next = false;
@@ -195,7 +193,7 @@ public:
 
 private:
     // Link to bus
-    Bus *bus = nullptr;
+    Bus *bus;
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
 

@@ -1,12 +1,13 @@
 //
 // Created by anngu on 7/24/2025.
 //
-#include "sm83.h"
+#include "../Header/sm83.h"
+#include "../Header/Bus.h"
 
 
 sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
-    D(DE_PAIR.high), E(DE_PAIR.low), H(HL_PAIR.high), L(HL_PAIR.low),
-    AF(AF_PAIR.value), BC(BC_PAIR.value), DE(DE_PAIR.value), HL(HL_PAIR.value)
+              D(DE_PAIR.high), E(DE_PAIR.low), H(HL_PAIR.high), L(HL_PAIR.low),
+              AF(AF_PAIR.value), BC(BC_PAIR.value), DE(DE_PAIR.value), HL(HL_PAIR.value)
 {
    opcodeTable = {
     {"NOP", &sm83::NOP, 4},
