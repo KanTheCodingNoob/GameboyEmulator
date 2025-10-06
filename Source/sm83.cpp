@@ -1530,8 +1530,8 @@ uint8_t sm83::RET() {
 
 uint8_t sm83::RET_cc(const FlagRegisters f, const bool v) {
     if (getFlags(f) == v) {
-        const uint8_t nn_lsb = read(PC++);
-        const uint8_t nn_msb = read(PC++);
+        const uint8_t nn_lsb = read(SP++);
+        const uint8_t nn_msb = read(SP++);
         PC = nn_msb << 8 | nn_lsb;
         return 0;
     }
