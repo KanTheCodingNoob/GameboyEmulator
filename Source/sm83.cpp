@@ -537,38 +537,38 @@ void sm83::write(uint16_t addr, uint8_t data) {
 }
 
 void sm83::clock() {
-    // Handle HALT state
-    if (halted) {
-        IF = read(0xFF0F);
-        if ((IE & IF) != 0) {
-            // Wake up on any pending interrupt
-            halted = false;
-        } else {
-            return; // Stay halted
-        }
-    }
+    // // Handle HALT state
+    // if (halted) {
+    //     IF = read(0xFF0F);
+    //     if ((IE & IF) != 0) {
+    //         // Wake up on any pending interrupt
+    //         halted = false;
+    //     } else {
+    //         return; // Stay halted
+    //     }
+    // }
+    //
+    // if (stopped) {
+    //     // Check Joypad input (P1 register at 0xFF00)
+    //     uint8_t joy = read(0xFF00);
+    //     if ((joy & 0x0F) != 0x0F) {
+    //         // One of the buttons pressed, wake up
+    //         stopped = false;
+    //     } else {
+    //         return; // stay stopped
+    //     }
+    // }
 
-    if (stopped) {
-        // Check Joypad input (P1 register at 0xFF00)
-        uint8_t joy = read(0xFF00);
-        if ((joy & 0x0F) != 0x0F) {
-            // One of the buttons pressed, wake up
-            stopped = false;
-        } else {
-            return; // stay stopped
-        }
-    }
-
-    if (cycle == 0) {
+//    if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
-        cycle = opcodeTable[IR].cycles / 4; // Set cycles
+//        cycle = opcodeTable[IR].cycles / 4; // Set cycles
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
-        cycle -= additionalCycles;
+//        cycle -= additionalCycles;
 
         checkInterrupts();
-    }
-    cycle--;
+//    }
+//    cycle--;
 }
 
 void sm83::checkInterrupts() {
@@ -1522,8 +1522,8 @@ uint8_t sm83::CALL_cc_nn(const FlagRegisters f, const bool v) {
 }
 
 uint8_t sm83::RET() {
-    const uint8_t nn_lsb = read(PC++);
-    const uint8_t nn_msb = read(PC++);
+    const uint8_t nn_lsb = read(SP++);
+    const uint8_t nn_msb = read(SP++);
     PC = nn_msb << 8 | nn_lsb;
     return 0;
 }
