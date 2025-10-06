@@ -559,16 +559,16 @@ void sm83::clock() {
     //     }
     // }
 
-//    if (cycle == 0) {
+    if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
-//        cycle = opcodeTable[IR].cycles / 4; // Set cycles
+        cycle = opcodeTable[IR].cycles / 4; // Set cycles
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
-//        cycle -= additionalCycles;
+        cycle -= additionalCycles;
 
         checkInterrupts();
-//    }
-//    cycle--;
+    }
+    cycle--;
 }
 
 void sm83::checkInterrupts() {
