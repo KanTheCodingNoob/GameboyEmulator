@@ -90,7 +90,7 @@ uint8_t Cartridge::readBank01_nn(const uint16_t addr)
 void Cartridge::write(uint16_t addr, uint8_t data)
 {
     mapper->MBCWrite(addr, data);
-    bank01_NN = &rom[0x4000 * mapper->ramBankNum];
+    bank01_NN = &rom[0x4000 * mapper->romBankNum];
 }
 
 
