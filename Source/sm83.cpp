@@ -898,7 +898,7 @@ uint8_t sm83::SBC_A_r(const uint8_t &r1) {
     const uint8_t result = A - r1 - flag;
     setFlags(z, result == 0);
     setFlags(n, true);
-    setFlags(h, (A & 0xF) < ((r1 + flag & 0xF)));
+    setFlags(h, (A & 0xF) < ((r1 & 0xF) + flag));
     setFlags(c, A < static_cast<uint16_t>(r1) + flag);
     A = result;
     return 0;
@@ -910,7 +910,7 @@ uint8_t sm83::SBC_A_HLi() {
     const uint8_t result = A - Z - flag;
     setFlags(z, result == 0);
     setFlags(n, true);
-    setFlags(h, (A & 0xF) < ((Z + flag) & 0xF));
+    setFlags(h, (A & 0xF) < ((Z & 0xF) + flag));
     setFlags(c, A < static_cast<uint16_t>(Z) + flag);
     A = result;
     return 0;
@@ -1099,7 +1099,7 @@ uint8_t sm83::XOR_A_n() {
 uint8_t sm83::CCF() {
     setFlags(n, false);
     setFlags(h, false);
-    setFlags(c, ~getFlags(c));
+    setFlags(c, !getFlags(c));
     return 0;
 }
 
@@ -1316,7 +1316,7 @@ uint8_t sm83::RR_HLi() {
 }
 
 uint8_t sm83::SLA_r(uint8_t &r1) {
-    const uint8_t b7 = r1 & 0b10000000 >> 7;
+    const uint8_t b7 = (r1 & 0b10000000) >> 7;
     r1 = r1 << 1;
     setFlags(z, r1 == 0);
     setFlags(n, false);
