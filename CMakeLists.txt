@@ -25,4 +25,10 @@ add_custom_command(TARGET GameboyEmu POST_BUILD
         "$<TARGET_FILE_DIR:GameboyEmu>/cpu_instrs.gb"
 )
 
+add_custom_command(TARGET GameboyEmu POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/Testing/IndividualTest"
+        "$<TARGET_FILE_DIR:GameboyEmu>/Testing/IndividualTest"
+)
+
 target_link_libraries(GameboyEmu PRIVATE SDL3::SDL3)
