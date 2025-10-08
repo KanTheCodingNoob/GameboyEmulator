@@ -1351,12 +1351,16 @@ uint8_t sm83::SRA_r(uint8_t &r1) {
 uint8_t sm83::SRA_HLi() {
     const uint8_t data = read(HL);
     const uint8_t b0 = data & 0x01;
-    const uint8_t result = data >> 1;
+    const uint8_t msb = data & 0x80;         // preserve old bit 7
+    const uint8_t result = (data >> 1) | msb; // arithmetic shift right
+
+    write(HL, result);
+
     setFlags(z, result == 0);
     setFlags(n, false);
     setFlags(h, false);
-    setFlags(c, b0 == 0x01);
-    write(HL, result);
+    setFlags(c, b0 == 1);
+
     return 0;
 }
 
