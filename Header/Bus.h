@@ -18,8 +18,8 @@ public:
 
     std::shared_ptr<Cartridge> cartridge;
 
-    std::array<uint8_t, 8192> wram{};
-    std::array<uint8_t, 8192> vram{};
+    std::array<uint8_t, 0x2000> wram{};
+    std::array<uint8_t, 0x2000> vram{};
     std::array<uint8_t, 160> OAM{};
     std::array<uint8_t, 128> IORegisters{};
     std::array<uint8_t, 127> HRAM{};

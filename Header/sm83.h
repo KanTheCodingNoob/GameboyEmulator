@@ -76,7 +76,7 @@ public:
     uint8_t RRC_r(uint8_t &r1); uint8_t SRA_r(uint8_t &r1); uint8_t RR_r(uint8_t &r1); uint8_t SWAP_r(uint8_t &r1);
     uint8_t SLA_r(uint8_t &r1); uint8_t SRL_r(uint8_t &r1); uint8_t BIT_b_r(uint8_t b, const uint8_t &r1); uint8_t RES_b_r(uint8_t b, uint8_t &r1);
     uint8_t DEC_A_r(uint8_t &r1); uint8_t OR_A_r(const uint8_t &r1); uint8_t SET_b_r(uint8_t b, uint8_t &r1); uint8_t INC_rr(uint16_t &rr1);
-    uint8_t DEC_rr(uint16_t &rr1); uint8_t JR_cc_e(FlagRegisters f, bool v); uint8_t RET_cc(FlagRegisters f, bool v); uint8_t JP_cc_nn(FlagRegisters f, bool v); uint8_t CALL_cc_nn(FlagRegisters f, bool v);
+    uint8_t DEC_rr(uint16_t &rr1); uint8_t JR_cc_e(FlagRegisters flag, bool v); uint8_t RET_cc(FlagRegisters f, bool v); uint8_t JP_cc_nn(FlagRegisters f, bool v); uint8_t CALL_cc_nn(FlagRegisters f, bool v);
     uint8_t RST_n(uint8_t n); uint8_t BIT_b_HLi(uint8_t b); uint8_t RES_b_HLi(uint8_t b); uint8_t SUB_A_r(const uint8_t &r1);
 
     // Actual opcode

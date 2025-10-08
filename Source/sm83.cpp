@@ -559,7 +559,7 @@ void sm83::clock() {
     //     }
     // }
 
-    if (cycle == 0) {
+    //if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
         cycle = opcodeTable[IR].cycles / 4; // Set cycles
@@ -567,8 +567,8 @@ void sm83::clock() {
         cycle -= additionalCycles;
 
         checkInterrupts();
-    }
-    cycle--;
+    //}
+    // cycle--;
 }
 
 void sm83::checkInterrupts() {
@@ -775,7 +775,7 @@ uint8_t sm83::POP_rr(uint16_t &rr1) {
     SP++;
     const uint8_t W = read(SP);
     SP++;
-    rr1 = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
+    rr1 = static_cast<uint16_t>(W) << 8 | Z;
     return 0;
 }
 
@@ -1112,6 +1112,7 @@ uint8_t sm83::SCF() {
 
 uint8_t sm83::DAA() {
     uint8_t result = 0;
+    bool carry = getFlags(c);
     if (getFlags(n) == 1) {
         uint8_t adjustment = 0;
         if (getFlags(h) == 1) {
@@ -1129,15 +1130,14 @@ uint8_t sm83::DAA() {
         }
         if (getFlags(c) == 1 || A > 0x99) {
             adjustment = adjustment + 0x60;
-            setFlags(c, true);
-        } else {
-            setFlags(c, false);
+            carry = true;
         }
         result = A + adjustment;
         A = result;
     }
-    setFlags(z, result == 0);
+    setFlags(z, A == 0);
     setFlags(h, false);
+    setFlags(c, carry);
     return 0;
 }
 
@@ -1218,7 +1218,7 @@ uint8_t sm83::RLA() {
 
 uint8_t sm83::RRA() {
     const uint8_t b0 = A & 0x01;
-    A = (A >> 1) & (getFlags(c) << 7);
+    A = (A >> 1) | (getFlags(c) << 7);
     setFlags(z, false);
     setFlags(n, false);
     setFlags(h, false);
@@ -1295,7 +1295,7 @@ uint8_t sm83::RL_HLi() {
 
 uint8_t sm83::RR_r(uint8_t &r1) {
     const uint8_t b0 = r1 & 0x01;
-    r1 = (r1 >> 1) | (b0 << 7);
+    r1 = (r1 >> 1) | (getFlags(c) << 7);
     setFlags(z, r1 == 0);
     setFlags(n, false);
     setFlags(h, false);
@@ -1486,12 +1486,13 @@ uint8_t sm83::JR_e() {
     return 0;
 }
 
-uint8_t sm83::JR_cc_e(const FlagRegisters f, const bool v) {
+uint8_t sm83::JR_cc_e(const FlagRegisters flag, const bool v) {
     const auto e = static_cast<int8_t>(read(PC++));
-    if (getFlags(f) == v) {
+    if (getFlags(flag) == v) {
         PC = static_cast<uint16_t>(PC + e);
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 uint8_t sm83::CALL_nn() {
@@ -2339,7 +2340,10 @@ uint8_t sm83::RST_$28() {
 }
 
 uint8_t sm83::POP_AF() {
-    return POP_rr(AF);
+    uint8_t low = read(SP++);
+    uint8_t high = read(SP++);
+    AF = (high << 8) | (low & 0xF0); // lower nibble forced to 0
+    return 0;
 }
 
 uint8_t sm83::PUSH_AF() {
