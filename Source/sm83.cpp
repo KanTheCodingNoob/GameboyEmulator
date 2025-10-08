@@ -559,7 +559,7 @@ void sm83::clock() {
     //     }
     // }
 
-    //if (cycle == 0) {
+    // if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
         cycle = opcodeTable[IR].cycles / 4; // Set cycles
@@ -567,7 +567,7 @@ void sm83::clock() {
         cycle -= additionalCycles;
 
         checkInterrupts();
-    //}
+    // }
     // cycle--;
 }
 
