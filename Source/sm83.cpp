@@ -923,7 +923,7 @@ uint8_t sm83::SBC_A_n() {
     const uint8_t result = A - Z - flag;
     setFlags(z, result == 0);
     setFlags(n, true);
-    setFlags(h, (A & 0xF) < ((Z+flag) & 0xF));
+    setFlags(h, (A & 0xF) < ((Z & 0xF) + flag));
     setFlags(c, A < static_cast<uint16_t>(Z) + flag);
     A = result;
     return 0;
