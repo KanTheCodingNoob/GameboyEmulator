@@ -129,7 +129,7 @@ sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
     {"LD [HL] H", &sm83::LD_HLi_H, 8},
     {"LD [HL] L", &sm83::LD_HLi_L, 8},
     {"HALT", &sm83::HALT, 4},
-    {"LD HL A", &sm83::LD_HLi_A, 8},
+    {"LD [HL] A", &sm83::LD_HLi_A, 8},
     {"LD A B", &sm83::LD_A_B, 4},
     {"LD A C", &sm83::LD_A_C, 4},
     {"LD A D", &sm83::LD_A_D, 4},
@@ -559,16 +559,26 @@ void sm83::clock() {
     //     }
     // }
 
-    // if (cycle == 0) {
+    if (cycle == 0) {
         IR = read(PC); // Read Opcode
         PC++; // Increment program counter
+    // // Disassembly
+    //     if (IR == 0xCB)
+    //     {
+    //         log << this->prefixedTable[read(PC)].name;
+    //     } else
+    //     {
+    //         log << this->opcodeTable[IR].name;
+    //     }
+    //     log << std::endl;
+    // ///
         cycle = opcodeTable[IR].cycles / 4; // Set cycles
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
         cycle -= additionalCycles;
 
         checkInterrupts();
-    // }
-    // cycle--;
+    }
+    cycle--;
 }
 
 void sm83::checkInterrupts() {
@@ -753,7 +763,10 @@ uint8_t sm83::LD_nni_SP() {
     const uint8_t W = read(PC);
     PC++;
     const uint16_t addr = static_cast<uint16_t>(W) << 8 | static_cast<uint16_t>(Z);
-    write(addr, SP);
+    // Write SP in little-endian order
+    write(addr, static_cast<uint8_t>(SP & 0xFF));        // low byte
+    write(addr + 1, static_cast<uint8_t>((SP >> 8) & 0xFF)); // high byte
+
     return 0;
 }
 
@@ -764,9 +777,9 @@ uint8_t sm83::LD_SP_HL() {
 
 uint8_t sm83::PUSH_rr(const uint16_t &rr1) {
     SP--;
-    write(SP, static_cast<uint8_t>(rr1 >> 8));
+    write(SP, static_cast<uint8_t>(rr1 >> 8)); // High byte pushed first
     SP--;
-    write(SP, static_cast<uint8_t>(rr1));
+    write(SP, static_cast<uint8_t>(rr1 & 0xFF)); // Low byte pushed second
     return 0;
 }
 
@@ -786,8 +799,8 @@ uint8_t sm83::LD_HL_SP_plus_e() {
     HL = result;
     setFlags(z, false);
     setFlags(n, false);
-    setFlags(h, (SP & 0xF) + (e & 0xF) > 0xF);
-    setFlags(c, static_cast<uint16_t>((SP & 0xFF) + e) > 0x00FF);
+    setFlags(h, ((SP ^ e ^ result) & 0x10) == 0x10);
+    setFlags(c, ((SP ^ e ^ result) & 0x100) == 0x100);
     return 0;
 }
 
@@ -1511,11 +1524,11 @@ uint8_t sm83::CALL_nn() {
     return 0;
 }
 
-uint8_t sm83::CALL_cc_nn(const FlagRegisters f, const bool v) {
+uint8_t sm83::CALL_cc_nn(const FlagRegisters flag, const bool v) {
     const uint8_t nn_lsb = read(PC++);
     const uint8_t nn_msb = read(PC++);
     const uint16_t nn = nn_msb << 8 | nn_lsb;
-    if (getFlags(f) == v) {
+    if (getFlags(flag) == v) {
         SP--;
         write(SP, (PC >> 8) & 0xFF);
         SP--;
@@ -1533,8 +1546,8 @@ uint8_t sm83::RET() {
     return 0;
 }
 
-uint8_t sm83::RET_cc(const FlagRegisters f, const bool v) {
-    if (getFlags(f) == v) {
+uint8_t sm83::RET_cc(const FlagRegisters flag, const bool v) {
+    if (getFlags(flag) == v) {
         const uint8_t nn_lsb = read(SP++);
         const uint8_t nn_msb = read(SP++);
         PC = nn_msb << 8 | nn_lsb;
