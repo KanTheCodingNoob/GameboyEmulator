@@ -9,6 +9,9 @@ Bus::Bus() {
     for (auto &i : wram) i = 0x00;
 
     cpu.connectBus(this);
+    joypad.connectBus(this);
+    timer.connectBus(this);
+    interrupt.connectBus(this);
 }
 
 Bus::~Bus() = default;
@@ -109,6 +112,10 @@ uint8_t Bus::read(const uint16_t addr) {
     }
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Read I/O Registers
     {
+        if (addr == 0xFF44)
+        {
+            return 0x90;
+        }
         return IORegisters[addr - 0xFF00];
     }
     if (addr >= 0xFF80 && addr <= 0xFFFE) // Read HRAM
@@ -126,6 +133,13 @@ uint8_t Bus::read(const uint16_t addr) {
 void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge)
 {
     this->cartridge = cartridge;
+}
+
+void Bus::clock()
+{
+    cpu.clock(); // Execute one M-cycle worth of instruction
+    systemClockCounter++; // Keep track of amount of clock (which is reset after reaching 64 by the function below)
+    timer.tick();
 }
 
 

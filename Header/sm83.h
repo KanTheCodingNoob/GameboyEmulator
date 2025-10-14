@@ -48,7 +48,7 @@ public:
     bool IME = false;
     bool IME_next = false;
     bool halted = false;
-    bool halt_bug = false;
+    bool haltBug = false;
     bool stopped = false;
 
     enum FlagRegisters {
@@ -187,13 +187,11 @@ public:
     void checkInterrupts();
 
     uint8_t IR = 0x00;
-    uint8_t IE = 0xFF;
-    uint8_t IF = 0x00;
     uint8_t cycle = 0;
 
 private:
     // Link to bus
-    Bus *bus;
+    Bus *bus{};
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
 

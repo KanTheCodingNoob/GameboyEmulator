@@ -537,27 +537,30 @@ void sm83::write(uint16_t addr, uint8_t data) {
 }
 
 void sm83::clock() {
-    // // Handle HALT state
-    // if (halted) {
-    //     IF = read(0xFF0F);
-    //     if ((IE & IF) != 0) {
-    //         // Wake up on any pending interrupt
-    //         halted = false;
-    //     } else {
-    //         return; // Stay halted
-    //     }
-    // }
-    //
-    // if (stopped) {
-    //     // Check Joypad input (P1 register at 0xFF00)
-    //     uint8_t joy = read(0xFF00);
-    //     if ((joy & 0x0F) != 0x0F) {
-    //         // One of the buttons pressed, wake up
-    //         stopped = false;
-    //     } else {
-    //         return; // stay stopped
-    //     }
-    // }
+    // Check interrupt
+    if (halted)
+    {
+        uint8_t IE = read(0xFFFF);
+        uint8_t IF = read(0xFF0F);
+        uint8_t pending = IE & IF & 0x1F;
+
+        if (pending)
+        {
+            if (!IME)
+                haltBug = true; // trigger bug
+            halted = false;
+        }
+
+        if (halted)
+            return; // still halted
+    }
+
+    if (haltBug)
+    {
+        haltBug = false;
+        // The bug: low byte of PC not incremented correctly
+        PC = (PC & 0xFF00) | ((PC - 1) & 0x00FF);
+    }
 
     if (cycle == 0) {
         IR = read(PC); // Read Opcode
@@ -576,41 +579,13 @@ void sm83::clock() {
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
         cycle -= additionalCycles;
 
-        checkInterrupts();
-    }
-    cycle--;
-}
-
-void sm83::checkInterrupts() {
-    IF = read(0xFF0F);
-    uint8_t fired = IE & IF;
-
-    if (IME && fired) {
-        halted = false;  // wake up
-        IME = false;     // disable further interrupts
-
-        for (int i = 0; i < 5; i++) {
-            if (fired & (1 << i)) {
-                write(0xFF0F, IF & ~(1 << i)); // clear IF bit
-
-                // Push PC onto stack
-                SP--;
-                write(SP, (PC >> 8) & 0xFF);
-                SP--;
-                write(SP, PC & 0xFF);
-
-                static const uint16_t vectors[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
-                PC = vectors[i];
-                break;
-            }
+        if (IME_next) // Pending Interrupt set by instruction EI
+        {
+            IME = true;
+            IME_next = false;
         }
     }
-
-    // Apply delayed EI
-    if (IME_next) {
-        IME = true;
-        IME_next = false;
-    }
+    cycle--;
 }
 
 void sm83::setFlags(const FlagRegisters f, const bool v) const {
@@ -1574,15 +1549,14 @@ uint8_t sm83::RST_n(const uint8_t n) {
 }
 
 uint8_t sm83::HALT() {
-    IF = read(0xFF0F); // Interrupt Flag register
-    uint8_t pending = IE & IF;
+    uint8_t IE = read(0xFFFF);
+    uint8_t IF = read(0xFF0F);
 
-    if (!IME && pending == 0) {
-        // HALT bug condition: IME=0, no interrupt pending
-        halt_bug = true;
-        halted = false;
-    } else {
-        // Normal HALT: CPU suspends until an interrupt is requested
+    if (!IME && (IE & IF & 0x1F))
+    {
+        haltBug = true;
+    } else
+    {
         halted = true;
     }
 
@@ -1600,11 +1574,12 @@ uint8_t sm83::STOP_n() {
 
 uint8_t sm83::DI() {
     IME = false;
+    IME_next = false;
     return 0;
 }
 
 uint8_t sm83::EI() {
-    IME = true;
+    IME_next = true;
     return 0;
 }
 

@@ -17,12 +17,12 @@ add_executable(GameboyEmu main.cpp
         Header/MBC.h
         Source/MBC1.cpp
         Header/MBC1.h
-        )
-
-add_custom_command(TARGET GameboyEmu POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/cpu_instrs.gb"
-        "$<TARGET_FILE_DIR:GameboyEmu>/cpu_instrs.gb"
+        Source/Joypad.cpp
+        Header/Joypad.h
+        Source/Timer.cpp
+        Header/Timer.h
+        Source/Interrupt.cpp
+        Header/Interrupt.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD

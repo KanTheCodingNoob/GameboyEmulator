@@ -7,7 +7,10 @@
 #include <memory>
 
 #include "Cartridge.h"
+#include "Interrupt.h"
+#include "Joypad.h"
 #include "sm83.h"
+#include "Timer.h"
 
 class Bus {
 public:
@@ -15,6 +18,9 @@ public:
     ~Bus();
 
     sm83 cpu;
+    Joypad joypad;
+    Timer timer;
+    Interrupt interrupt;
 
     std::shared_ptr<Cartridge> cartridge;
 
@@ -25,12 +31,12 @@ public:
     std::array<uint8_t, 127> HRAM{};
     uint8_t IE = 0;
     uint8_t serialData = 0;
+    uint8_t systemClockCounter = 0;
 
     void write(uint16_t addr, uint8_t data);
     uint8_t read(uint16_t addr);
 
     void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
-    void reset();
     void clock();
 };
 
