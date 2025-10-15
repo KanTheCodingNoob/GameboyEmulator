@@ -14,8 +14,11 @@ Interrupt::~Interrupt()
 
 void Interrupt::interruptHandler(uint8_t bit)
 {
-    if (bus->read(IELocation) & (1 << bit)) // If IE allows for interrupt for that specific bit
-    {
-        bus->write(IFLocation, bus->read(IFLocation) | (1 << bit)); // Set interrupt flag for that bit
-    };
+    bus->write(IFLocation, bus->read(IFLocation) | (1 << bit));
+    bus->cpu.checkInterrupts();
+}
+
+void Interrupt::checkInterrupt()
+{
+
 }

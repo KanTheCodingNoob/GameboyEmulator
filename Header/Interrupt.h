@@ -19,6 +19,8 @@ public:
     }
 
     void interruptHandler(uint8_t bit);
+    void checkInterrupt();
+
 private:
     Bus* bus{};
 
