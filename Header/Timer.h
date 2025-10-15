@@ -30,6 +30,6 @@ private:
 
     uint16_t DIVCounter = 0;
     uint16_t TIMACounter = 0;
-    uint16_t DIVIncrementCycle = 256 * 4;
-    uint16_t TIMAIncrementCycle = 1024 * 4;
+    uint16_t DIVIncrementCycle = 64;
+    uint16_t TIMAIncrementCycle = 256;
 };

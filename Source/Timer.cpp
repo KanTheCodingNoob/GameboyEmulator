@@ -23,18 +23,21 @@ void Timer::tick()
         DIVCounter = 0;
     }
 
-    TIMACounter++;
-
-    // TIMA Increment after TIMAIncrementCycle cycles
-    if (TIMACounter >= TIMAIncrementCycle)
+    if ((bus->read(TACLocation) & 0x4) > 0)
     {
-        TIMACounter = 0;
-        uint8_t initialValue = bus->read(TIMALocation);
-        bus->write(TIMALocation, initialValue + 1);
-        if (initialValue == 0xFF)
+        TIMACounter++;
+
+        // TIMA Increment after TIMAIncrementCycle cycles
+        if (TIMACounter >= TIMAIncrementCycle)
         {
-            bus->interrupt.interruptHandler(2);
-            bus->write(TIMALocation, bus->read(TMALocation)); // Reset TIMA to the value of TMA
+            TIMACounter = 0;
+            uint8_t initialValue = bus->read(TIMALocation);
+            bus->write(TIMALocation, initialValue + 1);
+            if (initialValue == 0xFF)
+            {
+                bus->interrupt.interruptHandler(2);
+                bus->write(TIMALocation, bus->read(TMALocation)); // Reset TIMA to the value of TMA
+            }
         }
     }
 }
@@ -46,6 +49,7 @@ void Timer::write(uint16_t addr, uint8_t data)
     {
         case 0xFF04:
             bus->IORegisters[addr - 0xFF00] = 0;
+            DIVCounter = 0;
             break;
         case 0xFF07:
             bus->IORegisters[addr - 0xFF00] = data;
@@ -53,22 +57,22 @@ void Timer::write(uint16_t addr, uint8_t data)
             if ((data & 0x04) != 0)
             {
                 // Determine the increment cycle based on the first 2 bit of TAC
-                switch (bus->read(TACLocation) & 0x3)
+                switch (data & 0x3)
                 {
                 case 0:
-                    TIMAIncrementCycle = 1024 * 4;
+                    TIMAIncrementCycle = 256;
                     break;
                 case 1:
-                    TIMAIncrementCycle = 16 * 4;
+                    TIMAIncrementCycle = 4;
                     break;
                 case 2:
-                    TIMAIncrementCycle = 64 * 4;
+                    TIMAIncrementCycle = 16;
                     break;
                 case 3:
-                    TIMAIncrementCycle = 256 * 4;
+                    TIMAIncrementCycle = 64;
                     break;
                 default:
-                    TIMAIncrementCycle = 1024 * 4;
+                    TIMAIncrementCycle = 256;
                 }
             }
             break;
