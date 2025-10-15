@@ -67,6 +67,12 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     }
     // ------------------------------------------------
 
+    if (addr >= 0xFF04 && addr <= 0xFF07)
+    {
+        timer.write(addr, data);
+        return;
+    }
+
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
         IORegisters[addr - 0xFF00] = data;

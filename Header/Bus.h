@@ -31,7 +31,7 @@ public:
     std::array<uint8_t, 127> HRAM{};
     uint8_t IE = 0;
     uint8_t serialData = 0;
-    uint8_t systemClockCounter = 0;
+    uint64_t systemClockCounter = 0;
 
     void write(uint16_t addr, uint8_t data);
     uint8_t read(uint16_t addr);
