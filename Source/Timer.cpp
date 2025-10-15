@@ -14,48 +14,66 @@ Timer::~Timer()
 
 void Timer::tick()
 {
+    DIVCounter++;
     // DIV Increment after 64 cycles
-    if (bus->systemClockCounter % 64 == 0)
+    if (DIVCounter >= 64)
     {
-        bus->IORegisters[DIVLocation]++;
+        // Direct access since writing to the DIV register through the bus reset it to 0
+        bus->IORegisters[DIVLocation - 0xFF00]++;
+        DIVCounter = 0;
     }
 
-    // If bit 2 of TAC register is set, TIME is enabled to increment
-    if (bus->IORegisters[TACLocation] & 0x7 >= 0x4)
-    {
-        uint16_t TIMAIncrementCycle;
-        // Determine the increment cycle based on the first 2 bit of TAC
-        switch (bus->IORegisters[TACLocation] & 0x3)
-        {
-        case 0:
-            TIMAIncrementCycle = 256;
-            break;
-        case 1:
-            TIMAIncrementCycle = 4;
-            break;
-        case 2:
-            TIMAIncrementCycle = 16;
-            break;
-        case 3:
-            TIMAIncrementCycle = 64;
-            break;
-        default:
-            TIMAIncrementCycle = 256;
-        }
+    TIMACounter++;
 
-        // TIMA Increment after TIMAIncrementCycle cycles
-        if (bus->systemClockCounter % TIMAIncrementCycle == 0)
+    // TIMA Increment after TIMAIncrementCycle cycles
+    if (TIMACounter >= TIMAIncrementCycle)
+    {
+        TIMACounter = 0;
+        uint8_t initialValue = bus->read(TIMALocation);
+        bus->write(TIMALocation, initialValue + 1);
+        if (initialValue == 0xFF)
         {
-            uint8_t initialValue = bus->read(TIMALocation);
-            if (initialValue == 0xFF)
-            {
-                bus->interrupt.interruptHandler(2);
-                bus->IORegisters[TIMALocation] = bus->IORegisters[TMALocation]; // Reset TIMA to the value of TMA
-            } else
-            {
-                bus->IORegisters[TIMALocation]++;
-            }
+            bus->interrupt.interruptHandler(2);
+            bus->write(TIMALocation, bus->read(TMALocation)); // Reset TIMA to the value of TMA
         }
     }
 }
+
+// Custom behavior for the Timer register in terms of writing to it
+void Timer::write(uint16_t addr, uint8_t data)
+{
+    switch (addr)
+    {
+        case 0xFF04:
+            bus->IORegisters[addr - 0xFF00] = 0;
+            break;
+        case 0xFF07:
+            bus->IORegisters[addr - 0xFF00] = data;
+            // If bit 2 of TAC register is set, TIME is enabled to increment
+            if ((bus->read(TACLocation) & 0x04) != 0)
+            {
+                // Determine the increment cycle based on the first 2 bit of TAC
+                switch (bus->read(TACLocation) & 0x3)
+                {
+                case 0:
+                    TIMAIncrementCycle = 255;
+                    break;
+                case 1:
+                    TIMAIncrementCycle = 3;
+                    break;
+                case 2:
+                    TIMAIncrementCycle = 15;
+                    break;
+                case 3:
+                    TIMAIncrementCycle = 63;
+                    break;
+                default:
+                    TIMAIncrementCycle = 255;
+                }
+            }
+        default:
+            bus->IORegisters[addr - 0xFF00] = data;
+    }
+}
+
 

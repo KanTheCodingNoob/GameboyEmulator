@@ -12,6 +12,7 @@ public:
     Timer();
     ~Timer();
     void tick();
+    void write(uint16_t addr, uint8_t data);
 
     void connectBus(Bus* n)
     {
@@ -21,8 +22,13 @@ public:
 private:
     Bus* bus{};
 
-    const uint16_t DIVLocation = 0x04;
-    const uint16_t TIMALocation = 0x05;
-    const uint16_t TMALocation = 0x06;
-    const uint16_t TACLocation = 0x07;
+    const uint16_t DIVLocation = 0xFF04;
+    const uint16_t TIMALocation = 0xFF05;
+    const uint16_t TMALocation = 0xFF06;
+    const uint16_t TACLocation = 0xFF07;
+    const uint16_t IFLocation = 0xFF0F;
+
+    uint8_t DIVCounter = 0;
+    uint8_t TIMACounter = 0;
+    uint8_t TIMAIncrementCycle = 0;
 };
