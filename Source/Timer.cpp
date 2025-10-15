@@ -16,7 +16,7 @@ void Timer::tick()
 {
     DIVCounter++;
     // DIV Increment after 64 cycles
-    if (DIVCounter >= 64)
+    if (DIVCounter >= DIVIncrementCycle)
     {
         // Direct access since writing to the DIV register through the bus reset it to 0
         bus->IORegisters[DIVLocation - 0xFF00]++;
@@ -50,27 +50,28 @@ void Timer::write(uint16_t addr, uint8_t data)
         case 0xFF07:
             bus->IORegisters[addr - 0xFF00] = data;
             // If bit 2 of TAC register is set, TIME is enabled to increment
-            if ((bus->read(TACLocation) & 0x04) != 0)
+            if ((data & 0x04) != 0)
             {
                 // Determine the increment cycle based on the first 2 bit of TAC
                 switch (bus->read(TACLocation) & 0x3)
                 {
                 case 0:
-                    TIMAIncrementCycle = 255;
+                    TIMAIncrementCycle = 1024 * 4;
                     break;
                 case 1:
-                    TIMAIncrementCycle = 3;
+                    TIMAIncrementCycle = 16 * 4;
                     break;
                 case 2:
-                    TIMAIncrementCycle = 15;
+                    TIMAIncrementCycle = 64 * 4;
                     break;
                 case 3:
-                    TIMAIncrementCycle = 63;
+                    TIMAIncrementCycle = 256 * 4;
                     break;
                 default:
-                    TIMAIncrementCycle = 255;
+                    TIMAIncrementCycle = 1024 * 4;
                 }
             }
+            break;
         default:
             bus->IORegisters[addr - 0xFF00] = data;
     }

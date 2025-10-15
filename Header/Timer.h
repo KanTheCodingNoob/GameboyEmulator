@@ -28,7 +28,8 @@ private:
     const uint16_t TACLocation = 0xFF07;
     const uint16_t IFLocation = 0xFF0F;
 
-    uint8_t DIVCounter = 0;
-    uint8_t TIMACounter = 0;
-    uint8_t TIMAIncrementCycle = 0;
+    uint16_t DIVCounter = 0;
+    uint16_t TIMACounter = 0;
+    uint16_t DIVIncrementCycle = 256 * 4;
+    uint16_t TIMAIncrementCycle = 1024 * 4;
 };
