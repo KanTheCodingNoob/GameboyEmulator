@@ -536,6 +536,7 @@ void sm83::write(uint16_t addr, uint8_t data) {
     bus->write(addr, data);
 }
 
+// 1 clock = 1 machine cycle
 void sm83::clock() {
     // Check interrupt
     if (halted)
@@ -579,13 +580,39 @@ void sm83::clock() {
         const uint8_t additionalCycles = (this->*opcodeTable[IR].operate)();
         cycle -= additionalCycles;
 
-        if (IME_next) // Pending Interrupt set by instruction EI
+        if (IME_next && IR != 0xFB) // Pending Interrupt set by instruction EI
         {
             IME = true;
             IME_next = false;
         }
+
+        checkInterrupts();
     }
-    cycle--;
+     cycle--;
+}
+
+void sm83::checkInterrupts()
+{
+    uint8_t IE = read(0xFFFF);
+    uint8_t IF = read(0xFF0F);
+    uint8_t fired = IE & IF;
+    if (IME && fired) {
+        halted = false;  // wake up
+        IME = false;     // disable further interrupts
+        for (int i = 0; i < 5; i++) {
+            if (fired & (1 << i)) {
+                write(0xFF0F, IF & ~(1 << i)); // clear IF bit
+                // Push PC onto stack
+                SP--;
+                write(SP, (PC >> 8) & 0xFF);
+                SP--;
+                write(SP, PC & 0xFF);
+                static const uint16_t vectors[5] = {0x40, 0x48, 0x50, 0x58, 0x60};
+                PC = vectors[i];
+                break;
+            }
+        }
+    }
 }
 
 void sm83::setFlags(const FlagRegisters f, const bool v) const {

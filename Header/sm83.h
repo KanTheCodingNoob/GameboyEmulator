@@ -23,10 +23,10 @@ public:
     sm83();
     ~sm83();
     // Register
-    REGISTER_PAIR AF_PAIR{}; // High: A, Low: F
-    REGISTER_PAIR BC_PAIR{}; // High: B, Low: C
-    REGISTER_PAIR DE_PAIR{}; // High: D, Low: E
-    REGISTER_PAIR HL_PAIR{}; // High: H, Low: L
+    REGISTER_PAIR AF_PAIR{.low = 0xB0, .high = 0x01}; // High: A, Low: F
+    REGISTER_PAIR BC_PAIR{.low = 0x13, .high = 0x00}; // High: B, Low: C
+    REGISTER_PAIR DE_PAIR{.low = 0xD8, .high = 0x00}; // High: D, Low: E
+    REGISTER_PAIR HL_PAIR{.low = 0x4D, .high = 0x01}; // High: H, Low: L
 
     // Aliases for readability
     uint8_t& F;
@@ -42,7 +42,7 @@ public:
     uint16_t& DE;
     uint16_t& HL;
 
-    uint16_t SP = 0x0000;
+    uint16_t SP = 0xFFFE;
     uint16_t PC = 0x0100;
 
     bool IME = false;
