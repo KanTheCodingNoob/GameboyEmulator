@@ -547,8 +547,6 @@ void sm83::clock() {
 
         if (pending)
         {
-            if (!IME)
-                haltBug = true; // trigger bug
             halted = false;
         }
 
