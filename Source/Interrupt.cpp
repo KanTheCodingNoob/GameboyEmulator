@@ -12,13 +12,8 @@ Interrupt::Interrupt()
 Interrupt::~Interrupt()
 = default;
 
-void Interrupt::interruptHandler(uint8_t bit)
+void Interrupt::requestInterrupt(uint8_t bit)
 {
     bus->write(IFLocation, bus->read(IFLocation) | (1 << bit));
     bus->cpu.checkInterrupts();
-}
-
-void Interrupt::checkInterrupt()
-{
-
 }

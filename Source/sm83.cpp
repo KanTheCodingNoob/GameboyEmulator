@@ -584,12 +584,12 @@ void sm83::clock() {
             IME_next = false;
         }
 
-        checkInterrupts();
+        cycle += checkInterrupts();
     }
      cycle--;
 }
 
-void sm83::checkInterrupts()
+uint8_t sm83::checkInterrupts()
 {
     uint8_t IE = read(0xFFFF);
     uint8_t IF = read(0xFF0F);
@@ -610,7 +610,9 @@ void sm83::checkInterrupts()
                 break;
             }
         }
+        return 5;
     }
+    return 0;
 }
 
 void sm83::setFlags(const FlagRegisters f, const bool v) const {

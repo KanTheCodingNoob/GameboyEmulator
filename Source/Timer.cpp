@@ -35,7 +35,7 @@ void Timer::tick()
             bus->write(TIMALocation, initialValue + 1);
             if (initialValue == 0xFF)
             {
-                bus->interrupt.interruptHandler(2);
+                bus->interrupt.requestInterrupt(2);
                 bus->write(TIMALocation, bus->read(TMALocation)); // Reset TIMA to the value of TMA
             }
         }

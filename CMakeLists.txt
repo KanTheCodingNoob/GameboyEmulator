@@ -27,8 +27,8 @@ add_executable(GameboyEmu main.cpp
 
 add_custom_command(TARGET GameboyEmu POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_SOURCE_DIR}/Tests"
-        "$<TARGET_FILE_DIR:GameboyEmu>/Tests"
+        "${CMAKE_SOURCE_DIR}/TestRoms"
+        "$<TARGET_FILE_DIR:GameboyEmu>/TestRoms"
 )
 
 target_link_libraries(GameboyEmu PRIVATE SDL3::SDL3)

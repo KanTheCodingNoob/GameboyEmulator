@@ -18,8 +18,7 @@ public:
         this->bus = bus;
     }
 
-    void interruptHandler(uint8_t bit);
-    void checkInterrupt();
+    void requestInterrupt(uint8_t bit);
 
 private:
     Bus* bus{};
