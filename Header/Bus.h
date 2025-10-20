@@ -8,6 +8,7 @@
 
 #include "Cartridge.h"
 #include "Interrupt.h"
+#include "IO.h"
 #include "Joypad.h"
 #include "sm83.h"
 #include "Timer.h"
@@ -21,6 +22,7 @@ public:
     Joypad joypad;
     Timer timer;
     Interrupt interrupt;
+    IO io;
 
     std::shared_ptr<Cartridge> cartridge;
 

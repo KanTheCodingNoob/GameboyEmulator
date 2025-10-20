@@ -12,6 +12,7 @@ Bus::Bus() {
     joypad.connectBus(this);
     timer.connectBus(this);
     interrupt.connectBus(this);
+    io.connectBus(this);
 }
 
 Bus::~Bus() = default;
@@ -25,22 +26,27 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     if (addr >= 0x8000 && addr <= 0x9FFF) // Write Vram
     {
         vram[addr - 0x8000] = data;
+        return;
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) // Write external ram from cartridge
     {
         cartridge->eram[addr - 0xA000] = data;
+        return;
     }
     if (addr >= 0xC000 && addr <= 0xDFFF) // Write work ram
     {
         wram[addr - 0xC000] = data;
+        return;
     }
     if (addr >= 0xE000 && addr <= 0xFDFF) // Write work ram (echo ram mirror wram)
     {
         wram[addr - 0xE000] = data;
+        return;
     }
     if (addr >= 0xFE00 && addr <= 0xFE9F) // Write OAM
     {
         OAM[addr - 0xFE00] = data;
+        return;
     }
 
     // --- SERIAL OUTPUT HANDLING FOR BLARGG TESTS ---
@@ -49,13 +55,6 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
         serialData = data; // store last written byte
         return;
     }
-
-    if (addr == 0xFF01) {
-        serialData = data;
-        IORegisters[addr - 0xFF00] = data;
-        return;
-    }
-
     // Serial Control (SC)
     if (addr == 0xFF02) {
         IORegisters[addr - 0xFF00] = data;
@@ -76,14 +75,17 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
         IORegisters[addr - 0xFF00] = data;
+        return;
     }
     if (addr >= 0xFF80 && addr <= 0xFFFE) // Write HRAM
     {
         HRAM[addr - 0xFF80] = data;
+        return;
     }
     if (addr == 0xFFFF) // Write IE
     {
         IE = data;
+        return;
     }
 }
 
@@ -118,10 +120,6 @@ uint8_t Bus::read(const uint16_t addr) {
     }
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Read I/O Registers
     {
-        if (addr == 0xFF44)
-        {
-            return 0x90;
-        }
         return IORegisters[addr - 0xFF00];
     }
     if (addr >= 0xFF80 && addr <= 0xFFFE) // Read HRAM
