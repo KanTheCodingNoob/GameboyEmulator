@@ -9,7 +9,7 @@ class Bus;
 
 class Timer {
 public:
-    Timer();
+    explicit Timer(Bus* bus);
     ~Timer();
     void tick();
     void write(uint16_t addr, uint8_t data);

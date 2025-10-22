@@ -5,9 +5,9 @@
 #include "../Header/Bus.h"
 
 
-sm83::sm83(): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
+sm83::sm83(Bus *bus): F(AF_PAIR.low), A(AF_PAIR.high), B(BC_PAIR.high), C(BC_PAIR.low),
               D(DE_PAIR.high), E(DE_PAIR.low), H(HL_PAIR.high), L(HL_PAIR.low),
-              AF(AF_PAIR.value), BC(BC_PAIR.value), DE(DE_PAIR.value), HL(HL_PAIR.value)
+              AF(AF_PAIR.value), BC(BC_PAIR.value), DE(DE_PAIR.value), HL(HL_PAIR.value), bus(bus)
 {
    opcodeTable = {
     {"NOP", &sm83::NOP, 4},

@@ -20,7 +20,7 @@ union REGISTER_PAIR {
 
 class sm83 {
 public:
-    sm83();
+    explicit sm83(Bus* bus);
     ~sm83();
     // Register
     REGISTER_PAIR AF_PAIR{}; // High: A, Low: F

@@ -10,7 +10,7 @@ class Bus;
 
 class Joypad {
 public:
-    Joypad();
+    explicit Joypad(Bus* bus);
     ~Joypad();
 
     void connectBus(Bus *n)

@@ -10,7 +10,7 @@ class Bus;
 
 class IO {
 public:
-    IO();
+    explicit IO(Bus* bus);
     ~IO();
 
     void busIOWrite(uint16_t addr, uint8_t data);

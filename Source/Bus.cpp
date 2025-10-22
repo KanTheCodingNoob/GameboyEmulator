@@ -5,15 +5,8 @@
 #include "../Header/Bus.h"
 #include "../Header/sm83.h"
 
-Bus::Bus() {
-    for (auto &i : wram) i = 0x00;
-
-    cpu.connectBus(this);
-    joypad.connectBus(this);
-    timer.connectBus(this);
-    interrupt.connectBus(this);
-    io.connectBus(this);
-}
+Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this)
+{}
 
 Bus::~Bus() = default;
 

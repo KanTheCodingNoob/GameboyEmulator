@@ -10,7 +10,7 @@ class Bus;
 
 class Interrupt {
 public:
-    Interrupt();
+    explicit Interrupt(Bus* bus);
     ~Interrupt();
 
     void connectBus(Bus* bus)

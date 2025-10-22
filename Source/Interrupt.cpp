@@ -6,8 +6,7 @@
 
 #include "../Header/Bus.h"
 
-Interrupt::Interrupt()
-= default;
+Interrupt::Interrupt(Bus *bus): bus(bus){}
 
 Interrupt::~Interrupt()
 = default;

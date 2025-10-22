@@ -6,8 +6,7 @@
 
 #include "../Header/Bus.h"
 
-Timer::Timer()
-= default;
+Timer::Timer(Bus *bus): bus(bus){}
 
 Timer::~Timer()
 = default;

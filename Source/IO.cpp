@@ -6,7 +6,7 @@
 
 #include "../Header/Bus.h"
 
-IO::IO() : IORegisters(bus->IORegisters)
+IO::IO(Bus *bus) : bus(bus), IORegisters(bus->IORegisters)
 {
 }
 

@@ -4,8 +4,7 @@
 
 #include "../Header/Joypad.h"
 
-Joypad::Joypad()
-= default;
+Joypad::Joypad(Bus* bus): bus(bus){}
 
 Joypad::~Joypad()
 = default;
