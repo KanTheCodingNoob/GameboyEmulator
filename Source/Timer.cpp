@@ -18,7 +18,7 @@ void Timer::tick()
     if (DIVCounter >= DIVIncrementCycle)
     {
         // Direct access since writing to the DIV register through the bus reset it to 0
-        bus->IORegisters[DIVLocation - 0xFF00]++;
+        bus->io.directIOWrite(DIVLocation, bus->io.directIORead(DIVLocation));
         DIVCounter = 0;
     }
 
@@ -30,12 +30,12 @@ void Timer::tick()
         if (TIMACounter >= TIMAIncrementCycle)
         {
             TIMACounter = 0;
-            uint8_t initialValue = bus->read(TIMALocation);
-            bus->write(TIMALocation, initialValue + 1);
+            const uint8_t initialValue = bus->io.directIORead(TIMALocation);
+            bus->io.directIOWrite(TIMALocation, initialValue + 1);
             if (initialValue == 0xFF)
             {
                 bus->interrupt.requestInterrupt(2);
-                bus->write(TIMALocation, bus->read(TMALocation)); // Reset TIMA to the value of TMA
+                bus->io.directIOWrite(TIMALocation, bus->io.directIORead(TMALocation)); // Reset TIMA to the value of TMA
             }
         }
     }
@@ -47,11 +47,11 @@ void Timer::write(uint16_t addr, uint8_t data)
     switch (addr)
     {
         case 0xFF04:
-            bus->IORegisters[addr - 0xFF00] = 0;
+            bus->io.directIOWrite(addr, 0);
             DIVCounter = 0;
             break;
         case 0xFF07:
-            bus->IORegisters[addr - 0xFF00] = data;
+            bus->io.directIOWrite(addr, data);
             // If bit 2 of TAC register is set, TIME is enabled to increment
             if ((data & 0x04) != 0)
             {
@@ -76,7 +76,7 @@ void Timer::write(uint16_t addr, uint8_t data)
             }
             break;
         default:
-            bus->IORegisters[addr - 0xFF00] = data;
+            bus->io.directIOWrite(addr, data);
     }
 }
 

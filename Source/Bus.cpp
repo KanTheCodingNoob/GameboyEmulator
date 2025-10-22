@@ -67,7 +67,7 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
 
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
-        IORegisters[addr - 0xFF00] = data;
+        io.busIOWrite(addr, data);
         return;
     }
     if (addr >= 0xFF80 && addr <= 0xFFFE) // Write HRAM
@@ -113,7 +113,7 @@ uint8_t Bus::read(const uint16_t addr) {
     }
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Read I/O Registers
     {
-        return IORegisters[addr - 0xFF00];
+        return io.busIORead(addr);
     }
     if (addr >= 0xFF80 && addr <= 0xFFFE) // Read HRAM
     {
