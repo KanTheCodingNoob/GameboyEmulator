@@ -5,7 +5,7 @@
 #include "../Header/Bus.h"
 #include "../Header/sm83.h"
 
-Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this)
+Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this), ppu(this)
 {}
 
 Bus::~Bus() = default;

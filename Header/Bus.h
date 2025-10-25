@@ -10,6 +10,7 @@
 #include "Interrupt.h"
 #include "IO.h"
 #include "Joypad.h"
+#include "PPU.h"
 #include "sm83.h"
 #include "Timer.h"
 
@@ -23,6 +24,7 @@ public:
     Timer timer;
     Interrupt interrupt;
     IO io;
+    PPU ppu;
 
     std::shared_ptr<Cartridge> cartridge;
 
