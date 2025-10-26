@@ -3,10 +3,22 @@
 //
 
 #include "../Header/PPU.h"
+#include "../Header/Bus.h"
 
-PPU::PPU(Bus* bus): bus(bus)
+PPU::PPU(Bus* bus): bus(bus), LCDC (bus->IORegisters[0x40]),
+                    STAT(bus->IORegisters[0x41]),
+                     SCY ( bus->IORegisters[0x42]),
+                     SCX ( bus->IORegisters[0x43]),
+                     LY ( bus->IORegisters[0x44]),
+                     LYC ( bus->IORegisters[0x45]),
+                     DMA ( bus->IORegisters[0x46]),
+                     BGP ( bus->IORegisters[0x47]),
+                     OBP0 ( bus->IORegisters[0x48]),
+                     OBP1 ( bus->IORegisters[0x49]),
+                     WY ( bus->IORegisters[0x4A]),
+                     WX ( bus->IORegisters[0x4B])
 {
-    BGP = 0x11100100;
+    BGP = 0b11100100;
 }
 
 uint16_t PPU::returnVRAMAddress(const uint8_t addr, const bool object)
