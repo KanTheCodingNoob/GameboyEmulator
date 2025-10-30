@@ -37,6 +37,8 @@ public:
     uint8_t serialData = 0;
     uint64_t systemClockCounter = 0;
 
+    void OAM_DMA_Transfer(uint8_t XX);
+
     void write(uint16_t addr, uint8_t data);
     uint8_t read(uint16_t addr);
 

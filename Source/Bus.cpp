@@ -10,6 +10,21 @@ Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this), ppu
 
 Bus::~Bus() = default;
 
+// DMA transfer from RAM to OAM
+void Bus::OAM_DMA_Transfer(const uint8_t XX)
+{
+    if (XX > 0xDF)
+    {
+        return;
+    }
+    for (int i = 0; i < 0x100; i++)
+    {
+        const uint16_t source = XX << 8 | i;
+        const uint16_t dest = 0xFE00 | i;
+        write(dest, read(source));
+    }
+}
+
 void Bus::write(const uint16_t addr, const uint8_t data) {
     if (addr <= 0x7FFF) // Write to Bank 00 (Not actually writable to rom, the actual purpose is to adjust the mapper)
     {
@@ -58,12 +73,6 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
         return;
     }
     // ------------------------------------------------
-
-    if (addr >= 0xFF04 && addr <= 0xFF07)
-    {
-        timer.write(addr, data);
-        return;
-    }
 
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
