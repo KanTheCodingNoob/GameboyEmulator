@@ -3,6 +3,9 @@
 //
 
 #include "../Header/PPU.h"
+
+#include <algorithm>
+
 #include "../Header/Bus.h"
 
 PPU::PPU(Bus* bus): bus(bus), LCDC (bus->IORegisters[0x40]),
@@ -42,7 +45,59 @@ std::array<uint8_t, 8> PPU::returnPixelValuesFromTwoBytes(const uint8_t topLine,
     return pixels;
 }
 
-uint32_t PPU::bgColorHandler(const uint8_t value)
+uint32_t PPU::bgColorHandler(uint8_t value)
 {
-    return colorPalette[(BGP >> (value * 2) & 0x03)];
-};
+}
+
+void PPU::clock()
+{
+    switch (mode)
+    {
+        // OAM Scan
+        case 2:
+            OAMSearch();
+            break;
+        case 3:
+            break;
+    }
+}
+
+// Scan 2 OBJ per clock
+void PPU::OAMSearch()
+{
+    // Loop through all OAM Y-Position
+    for (int i = OAMCycle * 2 * 4; i < (OAMCycle * 2 + 2) * 4; i = i + 4)
+    {
+        // Check if the OBJ Y position is within the scanline
+        if (LY + 16 >= bus->OAM[i] && LY + 16 < bus->OAM[i] + 8 * (((LCDC & 0x4) >> 2) + 1))
+        {
+            OAMInALine.push_back({bus->OAM[i], bus->OAM[i + 1], bus->OAM[i + 2], bus->OAM[i + 3]});
+        }
+        // Stop after 10 OBJ
+        if (OAMInALine.size() == 10)
+        {
+            break;
+        }
+    }
+    OAMCycle++;
+    if (OAMCycle == 10)
+    {
+        OAMCycle = 0;
+        // Stable sort them by x position for the Pixel Transfer operation
+        std::stable_sort(OAMInALine.begin(), OAMInALine.end(), [](const OBJ& a, const OBJ& b)
+        {
+            return a.xPosition < b.xPosition;
+        });
+        mode = 3;
+    }
+}
+
+void PPU::PixelTransfer(const std::vector<OBJ>& objs)
+{
+    int index = 0;
+    // Get Tile
+    // Get Tile Data Low
+    // Get Tile Data High
+    // Push
+    // Sleep
+}
