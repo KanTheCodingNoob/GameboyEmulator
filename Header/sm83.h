@@ -29,18 +29,18 @@ public:
     REGISTER_PAIR HL_PAIR{}; // High: H, Low: L
 
     // Aliases for readability
-    uint8_t& F;
-    uint8_t& A;
-    uint8_t& B;
-    uint8_t& C;
-    uint8_t& D;
-    uint8_t& E;
-    uint8_t& H;
-    uint8_t& L;
-    uint16_t& AF;
-    uint16_t& BC;
-    uint16_t& DE;
-    uint16_t& HL;
+    uint8_t& F = AF_PAIR.low;
+    uint8_t& A = AF_PAIR.high;
+    uint8_t& B = BC_PAIR.high;
+    uint8_t& C = BC_PAIR.low;
+    uint8_t& D = DE_PAIR.high;
+    uint8_t& E = DE_PAIR.low;
+    uint8_t& H = HL_PAIR.high;
+    uint8_t& L = HL_PAIR.low;
+    uint16_t& AF = AF_PAIR.value;
+    uint16_t& BC = BC_PAIR.value;
+    uint16_t& DE = DE_PAIR.value;
+    uint16_t& HL = HL_PAIR.value;
 
     uint16_t SP = 0x0000;
     uint16_t PC = 0x0100;
