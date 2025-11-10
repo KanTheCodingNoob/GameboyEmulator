@@ -58,29 +58,48 @@ void PPU::clock()
             OAMSearch();
             break;
         case 3:
+            PixelTransfer();
+            break;
+        case 0:
+            HBlank();
+            break;
+        case 1:
+            VBlank();
+            break;
+        default:
             break;
     }
 }
 
-// Scan 2 OBJ per clock
+// Scan all OBJ in one go, then keep track of the cycle until it reaches 20 clocks
+// then move on to mode 3 (M-cycles clocks)
 void PPU::OAMSearch()
 {
-    // Loop through all OAM Y-Position
-    for (int i = OAMCycle * 2 * 4; i < (OAMCycle * 2 + 2) * 4; i = i + 4)
+    if (OAMCycle == 0)
     {
-        // Check if the OBJ Y position is within the scanline
-        if (LY + 16 >= bus->OAM[i] && LY + 16 < bus->OAM[i] + 8 * (((LCDC & 0x4) >> 2) + 1))
+        OAMInALine.clear();
+        // Loop through all OAM Y-Position
+        for (int i = 0; i < 160; i = i + 4)
         {
-            OAMInALine.push_back({bus->OAM[i], bus->OAM[i + 1], bus->OAM[i + 2], bus->OAM[i + 3]});
-        }
-        // Stop after 10 OBJ
-        if (OAMInALine.size() == 10)
-        {
-            break;
+            // Stop after 10 OBJ
+            if (OAMInALine.size() == 10) break;
+
+            uint8_t y = bus->OAM[i];
+            uint8_t height = 8 * (((LCDC & 0x4) >> 2) + 1);
+
+            // Check if the OBJ Y position is within the scanline
+            if (LY + 16 >= y && LY + 16 < bus->OAM[i] + height)
+            {
+                OAMInALine.push_back(
+                    {bus->OAM[i],
+                        bus->OAM[i + 1],
+                        bus->OAM[i + 2],
+                        bus->OAM[i + 3]});
+            }
         }
     }
     OAMCycle++;
-    if (OAMCycle == 10)
+    if (OAMCycle >= 20)
     {
         OAMCycle = 0;
         // Stable sort them by x position for the Pixel Transfer operation
@@ -92,12 +111,126 @@ void PPU::OAMSearch()
     }
 }
 
-void PPU::PixelTransfer(const std::vector<OBJ>& objs)
+// The pixel transfer design is model after one machine clock cycle
+void PPU::PixelTransfer()
 {
-    int index = 0;
-    // Get Tile
-    // Get Tile Data Low
-    // Get Tile Data High
-    // Push
-    // Sleep
+    static uint8_t tileIndex = 0;
+    static uint16_t tileAddr = 0;
+    static uint8_t lowByte = 0;
+    static uint8_t highByte = 0;
+    // Cycle 0 -> Get Tile and Tile data low
+    // Cyle 1 -> Get Tile Data High and Sleep
+    // Each cycle push pixel 2 time
+    switch (PixelTransferCycle % 2)
+    {
+        case 0:
+            {
+                // Push twice
+                pushPixel();
+                pushPixel();
+                // Get Tile
+
+                // Determine background position
+                uint8_t bgY = (SCY + LY) & 0xFF; // Which pixel row in the 256x256 BG
+                uint8_t tileRow = bgY / 8; // Which tile row
+                uint8_t tileLine = bgY % 8; // Which line inside the 8x8 tile
+
+                // Select tile map base (LCDC.3)
+                uint8_t tileCol = ((SCX / 8) + fetcherX) & 0x1F; // Which BG X position to fetch
+
+                // Each tilemap entry = 1 byte (tile index)
+                uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
+                uint16_t tilemapAddr = tilemapBase + (tileRow * 32) + tileCol;
+
+                tileIndex = bus->read(tilemapAddr);
+
+                // Push twice
+                pushPixel();
+                pushPixel();
+
+                // Get Tile Data Low
+                // Select tile data base (LCDC.4)
+                uint16_t tileDataBase = (LCDC & 0x10) ? 0x8000 : 0x8800;
+                if (!(LCDC & 0x10)) {
+                    tileIndex = static_cast<int8_t>(tileIndex);  // interpret as signed
+                }
+
+                tileAddr = tileDataBase + (tileIndex * 16) + (tileLine * 2);
+                lowByte = bus->read(tileAddr);
+                break;
+            }
+        case 1:
+            {
+                // Push twice
+                pushPixel();
+                pushPixel();
+                // Get Tile Data High and Push Into Fifo
+                highByte = bus->read(tileAddr + 1);
+                for (int bit = 7; bit >= 0; bit--) {
+                    uint8_t color_id =
+                        ((highByte >> bit) & 1) << 1 |
+                        ((lowByte  >> bit) & 1);
+
+                    // Push to FIFO (for rendering pipeline)
+                    pixelFIFO.push(color_id);
+                }
+                // Push twice
+                pushPixel();
+                pushPixel();
+                // Sleep
+                break;
+            }
+        default:
+            break;
+    }
+    PixelTransferCycle++;
+}
+
+// Push a pixel to the LCD
+void PPU::pushPixel()
+{
+    if (LY >= 144) return; // prevent out-of-bounds
+    if (mode != 3) return; // Return the mode is not 3
+    if (pixelFIFO.size() > 8) // Only push when the FIFO has 8 pixel value or more
+    {
+        const uint8_t pixel = pixelFIFO.front();      // get the front value
+        pixelFIFO.pop();                        // then remove it
+        LCD[LY][pixelX] = colorPalette[pixel];        // render
+        pixelX++;
+        if (pixelX == 160)
+        {
+            pixelX = 0;
+            mode = 0;
+            HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
+            PixelTransferCycle = 0;
+        }
+    }
+}
+
+void PPU::HBlank()
+{
+    HBlankCycle--;
+    if (HBlankCycle == 0)
+    {
+        LY++;
+        if (LY >= 144)
+        {
+            mode = 1;
+            LY = 0;
+            bus->interrupt.requestInterrupt(0);
+        } else
+        {
+            mode = 2;
+        }
+    }
+}
+
+void PPU::VBlank()
+{
+    VBlankCycle++;
+    if (VBlankCycle == 1140)
+    {
+        VBlankCycle = 0;
+        mode = 2;
+    }
 }

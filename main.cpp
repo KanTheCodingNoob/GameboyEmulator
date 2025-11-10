@@ -20,33 +20,20 @@ static SDL_Texture *texture = nullptr;
 static std::thread worker;
 
 static std::atomic<bool> running{true};
-
-uint32_t framebuffer[WIDTH * HEIGHT];
+Bus bus;
+uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 
 const std::array<uint32_t, 4> colorPalette = {0xff0f380f, 0xff306230, 0xff8bac0f, 0xff9bbc0f};
 
 void backgroundTask()
 {
     std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/cpu_instrs.gb"));
-    Bus bus;
     bus.insertCartridge(cartridge);
+
     while (running)
     {
         bus.clock();
     }
-}
-
-void updatePixel()
-{
-    for (int y = 0; y < HEIGHT; y++) {
-        for (int x = 0; x < WIDTH; x++) {
-            Uint8 r = x;             // Red gradient
-            Uint8 g = y;             // Green gradient
-            Uint8 b = (x + y) / 2;   // Blue mix
-            framebuffer[y * WIDTH + x] = (0xFF << 24) | (r << 16) | (g << 8) | b;
-        }
-    }
-
 }
 
 /* This function runs once at startup. */
@@ -89,15 +76,12 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 /* This function runs once per frame, and is the heart of the program. */
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
-    updatePixel();
-    SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * sizeof(Uint32));
+    SDL_UpdateTexture(texture, nullptr, framebuffer, WIDTH * sizeof(Uint32));
     /* clear the window to the draw color. */
     SDL_RenderClear(renderer);
-    SDL_RenderTexture(renderer, texture, NULL, NULL);
+    SDL_RenderTexture(renderer, texture, nullptr, nullptr);
     /* put the newly-cleared rendering on the screen. */
     SDL_RenderPresent(renderer);
-    SDL_Delay(16);
-
     return SDL_APP_CONTINUE;  /* carry on with the program! */
 }
 

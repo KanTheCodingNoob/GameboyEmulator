@@ -144,6 +144,7 @@ void Bus::insertCartridge(const std::shared_ptr<Cartridge>& cartridge)
 void Bus::clock()
 {
     cpu.clock(); // Execute one M-cycle worth of instruction
+    ppu.clock();
     systemClockCounter++; // Keep track of amount of clock (which is reset after reaching 64 by the function below)
     timer.tick();
 }
