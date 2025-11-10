@@ -59,6 +59,10 @@ void PPU::clock()
             break;
         case 3:
             PixelTransfer();
+            pushPixel();
+            pushPixel();
+            pushPixel();
+            pushPixel();
             break;
         case 0:
             HBlank();
@@ -118,6 +122,10 @@ void PPU::PixelTransfer()
     static uint16_t tileAddr = 0;
     static uint8_t lowByte = 0;
     static uint8_t highByte = 0;
+    if (PixelTransferCycle == 0) {
+        fetcherX = 0;
+        discardedPixels = SCX % 8;  // how many pixels to discard from first tile
+    }
     // Cycle 0 -> Get Tile and Tile data low
     // Cyle 1 -> Get Tile Data High and Sleep
     // Each cycle push pixel 2 time
@@ -125,9 +133,6 @@ void PPU::PixelTransfer()
     {
         case 0:
             {
-                // Push twice
-                pushPixel();
-                pushPixel();
                 // Get Tile
 
                 // Determine background position
@@ -144,10 +149,6 @@ void PPU::PixelTransfer()
 
                 tileIndex = bus->read(tilemapAddr);
 
-                // Push twice
-                pushPixel();
-                pushPixel();
-
                 // Get Tile Data Low
                 // Select tile data base (LCDC.4)
                 uint16_t tileDataBase = (LCDC & 0x10) ? 0x8000 : 0x8800;
@@ -161,9 +162,6 @@ void PPU::PixelTransfer()
             }
         case 1:
             {
-                // Push twice
-                pushPixel();
-                pushPixel();
                 // Get Tile Data High and Push Into Fifo
                 highByte = bus->read(tileAddr + 1);
                 for (int bit = 7; bit >= 0; bit--) {
@@ -174,9 +172,7 @@ void PPU::PixelTransfer()
                     // Push to FIFO (for rendering pipeline)
                     pixelFIFO.push(color_id);
                 }
-                // Push twice
-                pushPixel();
-                pushPixel();
+                fetcherX++;
                 // Sleep
                 break;
             }
@@ -191,8 +187,14 @@ void PPU::pushPixel()
 {
     if (LY >= 144) return; // prevent out-of-bounds
     if (mode != 3) return; // Return the mode is not 3
-    if (pixelFIFO.size() > 8) // Only push when the FIFO has 8 pixel value or more
+    if (pixelFIFO.size() >= 8) // Only push when the FIFO has 8 pixel value or more
     {
+        if (discardedPixels > 0) {
+            pixelFIFO.pop();
+            discardedPixels--;
+            return; // Skip drawing until SCX alignment done
+        }
+
         const uint8_t pixel = pixelFIFO.front();      // get the front value
         pixelFIFO.pop();                        // then remove it
         LCD[LY][pixelX] = colorPalette[pixel];        // render

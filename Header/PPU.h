@@ -63,6 +63,7 @@ private:
     // Track the amount of cycle passed within each Pixel Transfer Operation
     uint16_t PixelTransferCycle = 0;
     void pushPixel();
+    uint8_t discardedPixels = 0;
 
     void HBlank();
     uint16_t HBlankCycle = 0;
