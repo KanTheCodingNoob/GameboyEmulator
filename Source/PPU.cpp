@@ -59,10 +59,6 @@ void PPU::clock()
             break;
         case 3:
             PixelTransfer();
-            pushPixel();
-            pushPixel();
-            pushPixel();
-            pushPixel();
             break;
         case 0:
             HBlank();
@@ -137,11 +133,11 @@ void PPU::PixelTransfer()
 
                 // Determine background position
                 uint8_t bgY = (SCY + LY) & 0xFF; // Which pixel row in the 256x256 BG
-                uint8_t tileRow = bgY / 8; // Which tile row
-                uint8_t tileLine = bgY % 8; // Which line inside the 8x8 tile
+                uint8_t tileRow = (bgY >> 3) & 0x1F; // Which tile row
+                uint8_t tileLine = bgY & 0x07; // Which line inside the 8x8 tile
 
                 // Select tile map base (LCDC.3)
-                uint8_t tileCol = ((SCX / 8) + fetcherX) & 0x1F; // Which BG X position to fetch
+                uint8_t tileCol = ((SCX >> 3) + fetcherX) & 0x1F;
 
                 // Each tilemap entry = 1 byte (tile index)
                 uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
@@ -151,12 +147,12 @@ void PPU::PixelTransfer()
 
                 // Get Tile Data Low
                 // Select tile data base (LCDC.4)
-                uint16_t tileDataBase = (LCDC & 0x10) ? 0x8000 : 0x8800;
-                if (!(LCDC & 0x10)) {
-                    tileIndex = static_cast<int8_t>(tileIndex);  // interpret as signed
+                if (LCDC & 0x10) {
+                    tileAddr = 0x8000 + (tileIndex * 16) + (tileLine * 2);
+                } else {
+                    tileAddr = 0x9000 + (static_cast<int8_t>(tileIndex) * 16) + (tileLine * 2);
                 }
 
-                tileAddr = tileDataBase + (tileIndex * 16) + (tileLine * 2);
                 lowByte = bus->read(tileAddr);
                 break;
             }
@@ -180,31 +176,35 @@ void PPU::PixelTransfer()
             break;
     }
     PixelTransferCycle++;
+    pushPixels();
 }
 
-// Push a pixel to the LCD
-void PPU::pushPixel()
+// Push 4 pixel per M-cycle to the LCD
+void PPU::pushPixels()
 {
-    if (LY >= 144) return; // prevent out-of-bounds
-    if (mode != 3) return; // Return the mode is not 3
-    if (pixelFIFO.size() >= 8) // Only push when the FIFO has 8 pixel value or more
+    for (int i = 0; i < 4; i++)
     {
-        if (discardedPixels > 0) {
-            pixelFIFO.pop();
-            discardedPixels--;
-            return; // Skip drawing until SCX alignment done
-        }
-
-        const uint8_t pixel = pixelFIFO.front();      // get the front value
-        pixelFIFO.pop();                        // then remove it
-        LCD[LY][pixelX] = colorPalette[pixel];        // render
-        pixelX++;
-        if (pixelX == 160)
+        if (LY >= 144) return; // prevent out-of-bounds
+        if (mode != 3) return; // Return the mode is not 3
+        if (pixelFIFO.size() >= 8) // Only push when the FIFO has 8 pixel value or more
         {
-            pixelX = 0;
-            mode = 0;
-            HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
-            PixelTransferCycle = 0;
+            if (discardedPixels > 0) {
+                pixelFIFO.pop();
+                discardedPixels--;
+                return; // Skip drawing until SCX alignment done
+            }
+
+            const uint8_t pixel = pixelFIFO.front();      // get the front value
+            pixelFIFO.pop();                        // then remove it
+            LCD[LY][pixelX] = colorPalette[pixel];        // render
+            pixelX++;
+            if (pixelX == 160)
+            {
+                pixelX = 0;
+                mode = 0;
+                HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
+                PixelTransferCycle = 0;
+            }
         }
     }
 }
