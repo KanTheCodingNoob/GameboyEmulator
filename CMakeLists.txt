@@ -27,6 +27,8 @@ add_executable(GameboyEmu main.cpp
         Header/IO.h
         Source/PPU.cpp
         Header/PPU.h
+        Source/MBC0.cpp
+        Header/MBC0.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD
