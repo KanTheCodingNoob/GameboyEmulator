@@ -33,7 +33,8 @@ Cartridge::Cartridge(const std::string& filename)
     // Handling different cartridge type, most notably its mapper
     switch (bank00[0x0147])
     {
-        case 0x00:
+    case 0x00:
+            mapper = std::make_unique<MBC0>();
             break;
         case 0x01:
             mapper = std::make_unique<MBC1>();

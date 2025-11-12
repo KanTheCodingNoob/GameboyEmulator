@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "MBC0.h"
 #include "MBC1.h"
 
 
