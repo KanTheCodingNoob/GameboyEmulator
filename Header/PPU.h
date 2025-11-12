@@ -21,8 +21,8 @@ class PPU {
 public:
     explicit PPU(Bus* bus);
 
-    static constexpr std::array<uint32_t, 4> colorPalette = {0xff0f380f, 0xff306230, 0xff8bac0f, 0xff9bbc0f};
-    uint32_t LCD[144][160];
+    static constexpr std::array<uint32_t, 4> colorPalette = {0xffffffff, 0xffa9a9a9, 0xff545454, 0xff000000};
+    uint32_t LCD[144][160]{};
 
     uint16_t returnVRAMAddress(uint8_t addr, bool object);
     std::array<uint8_t, 8> returnPixelValuesFromTwoBytes(uint8_t topLine, uint8_t secondLine);

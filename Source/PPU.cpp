@@ -21,7 +21,6 @@ PPU::PPU(Bus* bus): bus(bus), LCDC (bus->IORegisters[0x40]),
                      WY ( bus->IORegisters[0x4A]),
                      WX ( bus->IORegisters[0x4B])
 {
-    BGP = 0b11100100;
 }
 
 uint16_t PPU::returnVRAMAddress(const uint8_t addr, const bool object)
@@ -69,6 +68,7 @@ void PPU::clock()
         default:
             break;
     }
+    std::cout << static_cast<int>(LY) << "\n";
 }
 
 // Scan all OBJ in one go, then keep track of the cycle until it reaches 20 clocks
@@ -218,7 +218,6 @@ void PPU::HBlank()
         if (LY >= 144)
         {
             mode = 1;
-            LY = 0;
             bus->interrupt.requestInterrupt(0);
         } else
         {
@@ -230,9 +229,14 @@ void PPU::HBlank()
 void PPU::VBlank()
 {
     VBlankCycle++;
-    if (VBlankCycle == 1140)
+    if (VBlankCycle >= 144)
     {
         VBlankCycle = 0;
-        mode = 2;
+        LY++;
+        if (LY > 0x99)
+        {
+            mode = 2;
+            LY = 0;
+        }
     }
 }
