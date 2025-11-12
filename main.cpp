@@ -23,11 +23,9 @@ static std::atomic<bool> running{true};
 Bus bus;
 uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 
-const std::array<uint32_t, 4> colorPalette = {0xff0f380f, 0xff306230, 0xff8bac0f, 0xff9bbc0f};
-
 void backgroundTask()
 {
-    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/cpu_instrs.gb"));
+    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/tetris.gb"));
     bus.insertCartridge(cartridge);
 
     while (running)
