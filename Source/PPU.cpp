@@ -68,7 +68,6 @@ void PPU::clock()
         default:
             break;
     }
-    std::cout << static_cast<int>(LY) << "\n";
 }
 
 // Scan all OBJ in one go, then keep track of the cycle until it reaches 20 clocks
