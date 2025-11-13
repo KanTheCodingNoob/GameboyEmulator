@@ -28,9 +28,25 @@ void backgroundTask()
     std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/tetris.gb"));
     bus.insertCartridge(cartridge);
 
-    while (running)
+    while (running) // Roughly emulate the master clock
     {
-        bus.clock();
+        auto frameStart = std::chrono::high_resolution_clock::now();
+
+        for (int i = 0; i < 17556; i++)
+        {
+            bus.clock();
+        }
+
+        // Calculate elapsed time
+        auto frameEnd = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = frameEnd - frameStart;
+
+        // Wait the remainder to make ~16.67 ms per frame
+        double frameTime = 2.5; // target frame time in ms
+        if (elapsed.count() < frameTime)
+        {
+            std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(frameTime - elapsed.count()));
+        }
     }
 }
 
