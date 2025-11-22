@@ -121,6 +121,7 @@ void PPU::PixelTransfer()
         fetcherX = 0;
         discardedPixels = SCX % 8;  // how many pixels to discard from first tile
     }
+
     // Cycle 0 -> Get Tile and Tile data low
     // Cyle 1 -> Get Tile Data High and Sleep
     // Each cycle push pixel 2 time
@@ -135,9 +136,11 @@ void PPU::PixelTransfer()
                 uint8_t tileRow = (bgY >> 3) & 0x1F; // Which tile row
                 uint8_t tileLine = bgY & 0x07; // Which line inside the 8x8 tile
 
-                // Select tile map base (LCDC.3)
+
+                // Which tile column
                 uint8_t tileCol = ((SCX >> 3) + fetcherX) & 0x1F;
 
+                // Select tile map base (LCDC.3)
                 // Each tilemap entry = 1 byte (tile index)
                 uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
                 uint16_t tilemapAddr = tilemapBase + (tileRow * 32) + tileCol;
@@ -238,4 +241,14 @@ void PPU::VBlank()
             LY = 0;
         }
     }
+}
+
+uint8_t PPU::getLCDCFlags(LCDCFlags f) const
+{
+    return ((LCDC & f) > 0) ? 1 : 0;
+}
+
+uint8_t PPU::getSTATFlags(STATFlags f) const
+{
+    return ((STAT & f) > 0) ? 1 : 0;
 }
