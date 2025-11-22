@@ -7,30 +7,53 @@
 #include <cstdint>
 #include <queue>
 
-struct OBJ
-{
-    uint8_t yPosition; // Byte 0
-    uint8_t xPosition; // Byte 1
-    uint8_t tileIndex; // Byte 2
-    uint8_t attributes; // Byte 3
-};
 
 class Bus;
 
 class PPU {
 public:
     explicit PPU(Bus* bus);
+    ~PPU() = default;
 
     static constexpr std::array<uint32_t, 4> colorPalette = {0xffffffff, 0xffa9a9a9, 0xff545454, 0xff000000};
     uint32_t LCD[144][160]{};
 
     uint16_t returnVRAMAddress(uint8_t addr, bool object);
     std::array<uint8_t, 8> returnPixelValuesFromTwoBytes(uint8_t topLine, uint8_t secondLine);
-    ~PPU() = default;
 
     uint32_t bgColorHandler(uint8_t value);
     // M-cycle clock
     void clock();
+
+    struct OBJ
+    {
+        uint8_t yPosition; // Byte 0
+        uint8_t xPosition; // Byte 1
+        uint8_t tileIndex; // Byte 2
+        uint8_t attributes; // Byte 3
+    };
+
+    enum LCDCFlags
+    {
+        PPUEnable = (1 << 7),
+        WindowTileMapArea = (1 << 6),
+        WindowEnable = (1 << 5),
+        TileDataArea = (1 << 4),
+        BGTileMapArea = (1 << 3),
+        OBJSize = (1 << 2),
+        OBJEnable = (1 << 1),
+        BGAndWindowEnable = (1 << 0)
+    };
+
+    enum STATFlags
+    {
+        LYCSelect = (1 << 6),
+        Mode2Select = (1 << 5),
+        Mode1Select = (1 << 4),
+        Mode0Select = (1 << 3),
+        LYCEqualsLYC = (1 << 2)
+    };
+
 private:
     Bus* bus;
 
@@ -74,4 +97,7 @@ private:
     uint8_t fetcherX = 0;
     // Location of the current pixel in each frame
     uint8_t pixelX = 0;
+
+    uint8_t getLCDCFlags(LCDCFlags f) const;
+    uint8_t getSTATFlags(STATFlags f) const;
 };
