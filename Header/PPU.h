@@ -98,6 +98,6 @@ private:
     // Location of the current pixel in each frame
     uint8_t pixelX = 0;
 
-    uint8_t getLCDCFlags(LCDCFlags f) const;
-    uint8_t getSTATFlags(STATFlags f) const;
+    bool getLCDCFlags(LCDCFlags f) const;
+    bool getSTATFlags(STATFlags f) const;
 };
