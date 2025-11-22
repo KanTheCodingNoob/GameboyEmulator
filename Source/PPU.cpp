@@ -122,6 +122,17 @@ void PPU::PixelTransfer()
         discardedPixels = SCX % 8;  // how many pixels to discard from first tile
     }
 
+Ch    // if (!getLCDCFlags(BGAndWindowEnable))
+    // {
+    //     for (int i = 0; i < 4; i++)
+    //     {
+    //         pixelFIFO.push(0);
+    //     }
+    //     pushPixels();
+    //     PixelTransferCycle++;
+    //     return;
+    // }
+
     // Cycle 0 -> Get Tile and Tile data low
     // Cyle 1 -> Get Tile Data High and Sleep
     // Each cycle push pixel 2 time
@@ -135,7 +146,6 @@ void PPU::PixelTransfer()
                 uint8_t bgY = (SCY + LY) & 0xFF; // Which pixel row in the 256x256 BG
                 uint8_t tileRow = (bgY >> 3) & 0x1F; // Which tile row
                 uint8_t tileLine = bgY & 0x07; // Which line inside the 8x8 tile
-
 
                 // Which tile column
                 uint8_t tileCol = ((SCX >> 3) + fetcherX) & 0x1F;
@@ -206,6 +216,9 @@ void PPU::pushPixels()
                 mode = 0;
                 HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
                 PixelTransferCycle = 0;
+                while (!pixelFIFO.empty()) {
+                    pixelFIFO.pop();
+                }
             }
         }
     }
@@ -243,12 +256,12 @@ void PPU::VBlank()
     }
 }
 
-uint8_t PPU::getLCDCFlags(LCDCFlags f) const
+bool PPU::getLCDCFlags(const LCDCFlags f) const
 {
-    return ((LCDC & f) > 0) ? 1 : 0;
+    return (LCDC & f) != 0;
 }
 
-uint8_t PPU::getSTATFlags(STATFlags f) const
+bool PPU::getSTATFlags(const STATFlags f) const
 {
-    return ((STAT & f) > 0) ? 1 : 0;
+    return (STAT & f) != 0;
 }
