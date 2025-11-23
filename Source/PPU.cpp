@@ -122,7 +122,7 @@ void PPU::PixelTransfer()
         discardedPixels = SCX % 8;  // how many pixels to discard from first tile
     }
 
-Ch    // if (!getLCDCFlags(BGAndWindowEnable))
+    // if (!getLCDCFlags(BGAndWindowEnable))
     // {
     //     for (int i = 0; i < 4; i++)
     //     {
@@ -216,9 +216,7 @@ void PPU::pushPixels()
                 mode = 0;
                 HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
                 PixelTransferCycle = 0;
-                while (!pixelFIFO.empty()) {
-                    pixelFIFO.pop();
-                }
+                pixelFIFO = {};
             }
         }
     }
