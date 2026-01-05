@@ -51,7 +51,9 @@ public:
         Mode2Select = (1 << 5),
         Mode1Select = (1 << 4),
         Mode0Select = (1 << 3),
-        LYCEqualsLYC = (1 << 2)
+        LYEqualsLYC = (1 << 2),
+        PPUModeBit1 = (1 << 1),
+        PPUModeBit0 = (1 << 0),
     };
 
 private:
@@ -97,7 +99,12 @@ private:
     uint8_t fetcherX = 0;
     // Location of the current pixel in each frame
     uint8_t pixelX = 0;
+    // Boolean value used to mimic the low to high transition of the STAT register
+    bool prevSTATCondition = false;
 
     bool getLCDCFlags(LCDCFlags f) const;
     bool getSTATFlags(STATFlags f) const;
+    void setSTATFlags(STATFlags f, bool value) const;
+    void checkSTATInterrupt();
+    void updateSTAT();
 };

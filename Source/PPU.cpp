@@ -8,7 +8,7 @@
 
 #include "../Header/Bus.h"
 
-PPU::PPU(Bus* bus): bus(bus), LCDC (bus->IORegisters[0x40]),
+PPU::PPU(Bus* bus): bus(bus),LCDC (bus->IORegisters[0x40]),
                     STAT(bus->IORegisters[0x41]),
                      SCY ( bus->IORegisters[0x42]),
                      SCX ( bus->IORegisters[0x43]),
@@ -68,6 +68,8 @@ void PPU::clock()
         default:
             break;
     }
+    updateSTAT();
+    checkSTATInterrupt();
 }
 
 // Scan all OBJ in one go, then keep track of the cycle until it reaches 20 clocks
@@ -122,16 +124,16 @@ void PPU::PixelTransfer()
         discardedPixels = SCX % 8;  // how many pixels to discard from first tile
     }
 
-    // if (!getLCDCFlags(BGAndWindowEnable))
-    // {
-    //     for (int i = 0; i < 4; i++)
-    //     {
-    //         pixelFIFO.push(0);
-    //     }
-    //     pushPixels();
-    //     PixelTransferCycle++;
-    //     return;
-    // }
+    if (!getLCDCFlags(BGAndWindowEnable))
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            pixelFIFO.push(0);
+        }
+        pushPixels();
+        PixelTransferCycle++;
+        return;
+    }
 
     // Cycle 0 -> Get Tile and Tile data low
     // Cyle 1 -> Get Tile Data High and Sleep
@@ -231,7 +233,7 @@ void PPU::HBlank()
         if (LY >= 144)
         {
             mode = 1;
-            bus->interrupt.requestInterrupt(0);
+            bus->interrupt.requestVBlankInterrupt();
         } else
         {
             mode = 2;
@@ -262,4 +264,38 @@ bool PPU::getLCDCFlags(const LCDCFlags f) const
 bool PPU::getSTATFlags(const STATFlags f) const
 {
     return (STAT & f) != 0;
+}
+
+void PPU::setSTATFlags(const STATFlags f, const bool value) const
+{
+    if (value)
+    {
+        STAT |= f;
+    } else
+    {
+        STAT &= ~f;
+    }
+}
+
+void PPU::checkSTATInterrupt()
+{
+    const bool statCondition =
+         ((LYC == LY) && getSTATFlags(LYCSelect)) ||
+         ((mode == 2) && getSTATFlags(Mode2Select)) ||
+         ((mode == 1) && getSTATFlags(Mode1Select)) ||
+         ((mode == 0) && getSTATFlags(Mode0Select));
+
+    if (statCondition && !prevSTATCondition)
+    {
+        bus->interrupt.requestSTATInterrupt();
+    }
+
+    prevSTATCondition = statCondition;
+}
+
+void PPU::updateSTAT()
+{
+    setSTATFlags(LYEqualsLYC, (LY == LYC));
+    setSTATFlags(PPUModeBit1, (mode & 0x2));
+    setSTATFlags(PPUModeBit0, (mode & 0x1));
 }

@@ -26,12 +26,12 @@ void IO::busIOWrite(uint16_t addr, uint8_t data)
     {
         IORegisters[addr - 0xFF00] = data;
         bus->OAM_DMA_Transfer(data);
+        return;
     }
 
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
         IORegisters[addr - 0xFF00] = data;
-        return;
     }
 }
 

@@ -25,7 +25,7 @@ uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 
 void backgroundTask()
 {
-    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/tetris.gb"));
+    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/dmg-acid2.gb"));
     bus.insertCartridge(cartridge);
 
     while (running) // Roughly emulate the master clock
