@@ -19,6 +19,8 @@ public:
     }
 
     void requestInterrupt(uint8_t bit);
+    void requestSTATInterrupt();
+    void requestVBlankInterrupt();
 
 private:
     Bus* bus{};
