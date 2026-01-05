@@ -57,22 +57,22 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
         return;
     }
 
-    // --- SERIAL OUTPUT HANDLING FOR BLARGG TESTS ---
-    if (addr == 0xFF01) { // SB - Serial transfer data
-        IORegisters[addr - 0xFF00] = data;
-        serialData = data; // store last written byte
-        return;
-    }
-    // Serial Control (SC)
-    if (addr == 0xFF02) {
-        IORegisters[addr - 0xFF00] = data;
-
-        if (data == 0x81) { // Internal clock + transfer start
-            std::cout << static_cast<char>(serialData) << std::flush;
-        }
-        return;
-    }
-    // ------------------------------------------------
+    // // --- SERIAL OUTPUT HANDLING FOR BLARGG TESTS ---
+    // if (addr == 0xFF01) { // SB - Serial transfer data
+    //     IORegisters[addr - 0xFF00] = data;
+    //     serialData = data; // store last written byte
+    //     return;
+    // }
+    // // Serial Control (SC)
+    // if (addr == 0xFF02) {
+    //     IORegisters[addr - 0xFF00] = data;
+    //
+    //     if (data == 0x81) { // Internal clock + transfer start
+    //         std::cout << static_cast<char>(serialData) << std::flush;
+    //     }
+    //     return;
+    // }
+    // // ------------------------------------------------
 
     if (addr >= 0xFF00 && addr <= 0xFF7F) // Write I/O Registers
     {
