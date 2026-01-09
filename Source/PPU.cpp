@@ -235,34 +235,46 @@ bool PPU::usingWindow() const
            currentX >= WX - 7;
 }
 
-// Push 4 pixel per M-cycle to the LCD
 void PPU::pushPixels()
 {
-    if (!windowActive && usingWindow()) {
-        windowActive = true;
-        windowFetcherX = 0;
-        pixelFIFO = {}; // flush BG pixels
-    }
-
     for (int i = 0; i < 4; i++)
     {
-        if (LY >= 144) return; // prevent out-of-bounds
-        if (mode != 3) return; // Return the mode is not 3
-        if (pixelFIFO.size() >= 8) // Only push when the FIFO has 8 pixel value or more
+        if (LY >= 144) return;
+        if (mode != 3) return;
+
+        // Check window has been reached per pixel
+        if (!windowActive &&
+            getLCDCFlags(WindowEnable) &&
+            LY >= WY &&
+            currentX == WX - 7)
+        {
+            windowActive = true;
+
+            // Hard reset fetcher pipeline
+            windowFetcherX = 0;
+            PixelTransferCycle = 0;
+
+            pixelFIFO = {};
+        }
+
+        if (pixelFIFO.size() >= 8)
         {
             if (discardedPixels > 0) {
                 pixelFIFO.pop();
                 discardedPixels--;
-                return; // Skip drawing until SCX alignment done
+                continue;
             }
 
-            const uint8_t pixel = pixelFIFO.front();      // get the front value
-            pixelFIFO.pop();                        // then remove it
-            LCD[LY][currentX] = colorPalette[pixel];        // render
+            const uint8_t pixel = pixelFIFO.front();
+            pixelFIFO.pop();
+
+            LCD[LY][currentX] = colorPalette[pixel];
             currentX++;
-            if (currentX == 160) // Reach the end of scanline
+
+            if (currentX == 160)
             {
                 PixelTransferToHBlankTransition();
+                return;
             }
         }
     }
