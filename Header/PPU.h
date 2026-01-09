@@ -7,6 +7,24 @@
 #include <cstdint>
 #include <queue>
 
+struct TileFetcher {
+    uint8_t tileIndex = 0;
+    uint16_t tileAddr = 0;
+    uint8_t lowByte = 0;
+    uint8_t highByte = 0;
+    uint8_t fetcherX = 0;
+
+    void reset() {
+        fetcherX = 0;
+    }
+};
+
+struct TileSource {
+    uint16_t tilemapBase;
+    uint8_t tileX;
+    uint8_t tileY;
+    uint8_t tileLine;
+};
 
 class Bus;
 
@@ -76,6 +94,8 @@ private:
     std::queue<uint8_t> pixelFIFO;
     std::vector<OBJ> OAMInALine;
 
+    TileFetcher bgFetcher;
+
     uint8_t mode = 2;
     // Rendering mode
     // Mode 2
@@ -85,9 +105,14 @@ private:
 
     // Mode 3
     void PixelTransfer();
+    void stepBGFetcher();
+    TileSource getBGSource() const;
+    TileSource getWindowSource() const;
+    bool usingWindow() const;
     // Track the amount of cycle passed within each Pixel Transfer Operation
     uint16_t PixelTransferCycle = 0;
     void pushPixels();
+    void PixelTransferToHBlankTransition();
     uint8_t discardedPixels = 0;
 
     void HBlank();
@@ -95,10 +120,15 @@ private:
 
     void VBlank();
     uint16_t VBlankCycle = 0;
-    // Pixel Fetcher Coordinate
-    uint8_t fetcherX = 0;
+    // BG pixel Fetcher Coordinate
+    uint8_t bgFetcherX = 0;
+    // Window active indicator
+    uint8_t windowLineCounter = 0;
+    bool windowActive = false;
+    // Window pixel fetcher coordinate
+    uint8_t windowFetcherX = 0;
     // Location of the current pixel in each frame
-    uint8_t pixelX = 0;
+    uint8_t currentX = 0;
     // Boolean value used to mimic the low to high transition of the STAT register
     bool prevSTATCondition = false;
 

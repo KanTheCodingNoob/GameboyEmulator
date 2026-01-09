@@ -115,15 +115,13 @@ void PPU::OAMSearch()
 // The pixel transfer design is model after one machine clock cycle
 void PPU::PixelTransfer()
 {
-    static uint8_t tileIndex = 0;
-    static uint16_t tileAddr = 0;
-    static uint8_t lowByte = 0;
-    static uint8_t highByte = 0;
     if (PixelTransferCycle == 0) {
-        fetcherX = 0;
+        bgFetcher.reset();
+        windowFetcherX = 0;
         discardedPixels = SCX % 8;  // how many pixels to discard from first tile
     }
 
+    // If bg and window are not enabled, just push white pixel
     if (!getLCDCFlags(BGAndWindowEnable))
     {
         for (int i = 0; i < 4; i++)
@@ -135,67 +133,117 @@ void PPU::PixelTransfer()
         return;
     }
 
-    // Cycle 0 -> Get Tile and Tile data low
-    // Cyle 1 -> Get Tile Data High and Sleep
-    // Each cycle push pixel 2 time
-    switch (PixelTransferCycle % 2)
-    {
-        case 0:
-            {
-                // Get Tile
-
-                // Determine background position
-                uint8_t bgY = (SCY + LY) & 0xFF; // Which pixel row in the 256x256 BG
-                uint8_t tileRow = (bgY >> 3) & 0x1F; // Which tile row
-                uint8_t tileLine = bgY & 0x07; // Which line inside the 8x8 tile
-
-                // Which tile column
-                uint8_t tileCol = ((SCX >> 3) + fetcherX) & 0x1F;
-
-                // Select tile map base (LCDC.3)
-                // Each tilemap entry = 1 byte (tile index)
-                uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
-                uint16_t tilemapAddr = tilemapBase + (tileRow * 32) + tileCol;
-
-                tileIndex = bus->read(tilemapAddr);
-
-                // Get Tile Data Low
-                // Select tile data base (LCDC.4)
-                if (LCDC & 0x10) {
-                    tileAddr = 0x8000 + (tileIndex * 16) + (tileLine * 2);
-                } else {
-                    tileAddr = 0x9000 + (static_cast<int8_t>(tileIndex) * 16) + (tileLine * 2);
-                }
-
-                lowByte = bus->read(tileAddr);
-                break;
-            }
-        case 1:
-            {
-                // Get Tile Data High and Push Into Fifo
-                highByte = bus->read(tileAddr + 1);
-                for (int bit = 7; bit >= 0; bit--) {
-                    uint8_t color_id =
-                        ((highByte >> bit) & 1) << 1 |
-                        ((lowByte  >> bit) & 1);
-
-                    // Push to FIFO (for rendering pipeline)
-                    pixelFIFO.push(color_id);
-                }
-                fetcherX++;
-                // Sleep
-                break;
-            }
-        default:
-            break;
-    }
+    stepBGFetcher();
     PixelTransferCycle++;
     pushPixels();
+}
+
+void PPU::stepBGFetcher()
+{
+    // Decide source once per fetch step
+    const TileSource src = usingWindow()
+        ? getWindowSource()
+        : getBGSource();
+
+    switch (PixelTransferCycle % 2)
+    {
+    case 0: {
+            // Fetch tile index
+            const uint16_t tilemapAddr =
+                src.tilemapBase + src.tileY * 32 + src.tileX;
+
+            bgFetcher.tileIndex = bus->read(tilemapAddr);
+
+            // Select tile data base (LCDC.4)
+            if (LCDC & 0x10) {
+                bgFetcher.tileAddr =
+                    0x8000 +
+                    bgFetcher.tileIndex * 16 +
+                    src.tileLine * 2;
+            } else {
+                bgFetcher.tileAddr =
+                    0x9000 +
+                    static_cast<int8_t>(bgFetcher.tileIndex) * 16 +
+                    src.tileLine * 2;
+            }
+
+            bgFetcher.lowByte = bus->read(bgFetcher.tileAddr);
+            break;
+    }
+
+    case 1: {
+            // Fetch high byte
+            bgFetcher.highByte = bus->read(bgFetcher.tileAddr + 1);
+
+            // Push 8 pixels MSB → LSB
+            for (int bit = 7; bit >= 0; bit--) {
+                const uint8_t color =
+                    ((bgFetcher.highByte >> bit) & 1) << 1 |
+                    ((bgFetcher.lowByte  >> bit) & 1);
+
+                pixelFIFO.push(color);
+            }
+
+            // Advance tile X depending on source
+            if (usingWindow()) {
+                windowFetcherX++;
+            } else {
+                bgFetcher.fetcherX++;
+            }
+
+            break;
+        }
+    default: break;
+    }
+}
+
+TileSource PPU::getBGSource() const
+{
+    const uint8_t bgY = (SCY + LY) & 0xFF;
+    const uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
+    const uint8_t tileX = ((SCX >> 3) + bgFetcher.fetcherX) & 0x1F;
+    const uint8_t tileY = (bgY >> 3) & 0x1F;
+    const uint8_t tileLine = bgY & 7;
+
+    return {
+        tilemapBase,
+        tileX,
+        tileY,
+        tileLine
+    };
+}
+
+TileSource PPU::getWindowSource() const
+{
+    const uint8_t winY = windowLineCounter;
+    const uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
+    const uint8_t tileY = (winY >> 3) & 0x1F;
+    const uint8_t tileLine = winY & 7;
+
+    return {
+        tilemapBase,
+        windowFetcherX,
+        tileY,
+        tileLine
+    };
+}
+
+bool PPU::usingWindow() const
+{
+    return getLCDCFlags(WindowEnable) &&
+           LY >= WY &&
+           currentX >= WX - 7;
 }
 
 // Push 4 pixel per M-cycle to the LCD
 void PPU::pushPixels()
 {
+    if (!windowActive && usingWindow()) {
+        windowActive = true;
+        windowFetcherX = 0;
+        pixelFIFO = {}; // flush BG pixels
+    }
+
     for (int i = 0; i < 4; i++)
     {
         if (LY >= 144) return; // prevent out-of-bounds
@@ -210,18 +258,27 @@ void PPU::pushPixels()
 
             const uint8_t pixel = pixelFIFO.front();      // get the front value
             pixelFIFO.pop();                        // then remove it
-            LCD[LY][pixelX] = colorPalette[pixel];        // render
-            pixelX++;
-            if (pixelX == 160)
+            LCD[LY][currentX] = colorPalette[pixel];        // render
+            currentX++;
+            if (currentX == 160) // Reach the end of scanline
             {
-                pixelX = 0;
-                mode = 0;
-                HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
-                PixelTransferCycle = 0;
-                pixelFIFO = {};
+                PixelTransferToHBlankTransition();
             }
         }
     }
+}
+
+void PPU::PixelTransferToHBlankTransition()
+{
+    if (windowActive) { // Only increment if the window was active this scanline
+        windowLineCounter++;
+    }
+    windowActive = false;
+    currentX = 0;
+    mode = 0;
+    HBlankCycle = 94 - PixelTransferCycle; // Calculate the HBlank cycle needed based on the PixelTransferCycle
+    PixelTransferCycle = 0;
+    pixelFIFO = {};
 }
 
 void PPU::HBlank()
@@ -236,6 +293,7 @@ void PPU::HBlank()
             bus->interrupt.requestVBlankInterrupt();
         } else
         {
+            windowActive = false;
             mode = 2;
         }
     }
@@ -250,6 +308,7 @@ void PPU::VBlank()
         LY++;
         if (LY > 0x99)
         {
+            windowLineCounter = 0;
             mode = 2;
             LY = 0;
         }
