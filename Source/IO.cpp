@@ -15,6 +15,10 @@ IO::~IO()
 
 void IO::busIOWrite(uint16_t addr, uint8_t data)
 {
+    if (addr == 0xFF00)
+    {
+        return;
+    }
     if (addr >= 0xFF04 && addr <= 0xFF07)
     {
         bus->timer.write(addr, data);

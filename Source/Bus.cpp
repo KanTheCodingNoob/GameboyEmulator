@@ -6,7 +6,9 @@
 #include "../Header/sm83.h"
 
 Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this), ppu(this)
-{}
+{
+    IORegisters[0] = 0xF;
+}
 
 Bus::~Bus() = default;
 
