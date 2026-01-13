@@ -13,10 +13,12 @@ IO::IO(Bus *bus) : bus(bus), IORegisters(bus->IORegisters)
 IO::~IO()
 = default;
 
-void IO::busIOWrite(uint16_t addr, uint8_t data)
+void IO::busIOWrite(const uint16_t addr, const uint8_t data) const
 {
     if (addr == 0xFF00)
     {
+        // Preserve lower 4 bits, replace upper 4 bits
+        IORegisters[addr - 0xFF00] = (IORegisters[addr - 0xFF00] & 0x0F) | (data & 0xF0);
         return;
     }
     if (addr >= 0xFF04 && addr <= 0xFF07)
@@ -39,8 +41,12 @@ void IO::busIOWrite(uint16_t addr, uint8_t data)
     }
 }
 
-uint8_t IO::busIORead(uint16_t addr)
+uint8_t IO::busIORead(const uint16_t addr) const
 {
+    if (addr == 0xFF00)
+    {
+        return bus->joypad.getJoypadState(IORegisters[addr - 0xFF00]);
+    }
     return IORegisters[addr - 0xFF00];
 }
 

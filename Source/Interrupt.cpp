@@ -14,15 +14,19 @@ Interrupt::~Interrupt()
 void Interrupt::requestInterrupt(uint8_t bit)
 {
     bus->write(IFLocation, bus->read(IFLocation) | (1 << bit));
-    // bus->cpu.checkInterrupts();
+}
+
+void Interrupt::requestJoypadInterrupt()
+{
+    requestInterrupt(JoypadBit);
 }
 
 void Interrupt::requestSTATInterrupt()
 {
-    requestInterrupt(1);
+    requestInterrupt(LCDBit);
 }
 
 void Interrupt::requestVBlankInterrupt()
 {
-    requestInterrupt(0);
+    requestInterrupt(VBlankBit);
 }

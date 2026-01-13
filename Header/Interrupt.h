@@ -10,6 +10,16 @@ class Bus;
 
 class Interrupt {
 public:
+
+    enum interruptBit
+    {
+        VBlankBit = 0,
+        LCDBit = 1,
+        TimerBit = 2,
+        SerialBit = 3,
+        JoypadBit = 4
+    };
+
     explicit Interrupt(Bus* bus);
     ~Interrupt();
 
@@ -19,6 +29,7 @@ public:
     }
 
     void requestInterrupt(uint8_t bit);
+    void requestJoypadInterrupt();
     void requestSTATInterrupt();
     void requestVBlankInterrupt();
 

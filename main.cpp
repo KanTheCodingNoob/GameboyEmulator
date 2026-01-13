@@ -25,7 +25,7 @@ uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 
 void backgroundTask()
 {
-    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/tetris.gb"));
+    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/dmg-acid2.gb"));
     bus.insertCartridge(cartridge);
 
     while (running) // Roughly emulate the master clock
@@ -83,6 +83,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;  /* end the program, reporting success to the OS. */
+    }
+    if (event->type == SDL_EVENT_KEY_DOWN)
+    {
+        bus.joypad.handleKeyPressed(event->key.scancode);
+    } else if (event->type == SDL_EVENT_KEY_UP)
+    {
+        bus.joypad.handleKeyReleased(event->key.scancode);
     }
     return SDL_APP_CONTINUE;  /* carry on with the program! */
 }

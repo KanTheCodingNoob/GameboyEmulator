@@ -13,8 +13,8 @@ public:
     explicit IO(Bus* bus);
     ~IO();
 
-    void busIOWrite(uint16_t addr, uint8_t data);
-    uint8_t busIORead(uint16_t addr);
+    void busIOWrite(uint16_t addr, uint8_t data) const;
+    uint8_t busIORead(uint16_t addr) const;
 
     void connectBus(Bus* n)
     {
