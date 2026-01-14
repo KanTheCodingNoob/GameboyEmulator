@@ -92,7 +92,9 @@ private:
     uint8_t& WX;
 
     std::queue<uint8_t> pixelFIFO;
+    std::queue<uint8_t> objectFIFO;
     std::vector<OBJ> OAMInALine;
+    int OAMInALinePointer = 0;
 
     TileFetcher bgFetcher;
 
@@ -106,6 +108,7 @@ private:
     // Mode 3
     void PixelTransfer();
     void stepBGFetcher();
+    void stepOBJFetcher(OBJ& obj);
     TileSource getBGSource() const;
     TileSource getWindowSource() const;
     bool usingWindow() const;

@@ -197,6 +197,14 @@ void PPU::stepBGFetcher()
     }
 }
 
+void PPU::stepOBJFetcher(OBJ& obj)
+{
+    for (int j = 0; j < 8; j++)
+    {
+        objectFIFO.push(3);
+    }
+}
+
 TileSource PPU::getBGSource() const
 {
     const uint8_t bgY = (SCY + LY) & 0xFF;
@@ -257,6 +265,20 @@ void PPU::pushPixels()
             pixelFIFO = {};
         }
 
+        // Check if any object is pending
+        if (getLCDCFlags(OBJEnable) &&
+            !OAMInALine.empty() &&
+            OAMInALinePointer >= 0 &&
+            currentX == OAMInALine.at(OAMInALinePointer).xPosition - 8)
+        {
+            stepOBJFetcher(OAMInALine.at(OAMInALinePointer));
+            OAMInALinePointer++;
+            if (OAMInALinePointer == OAMInALine.size())
+            {
+                OAMInALinePointer = -1;
+            }
+        }
+
         if (pixelFIFO.size() >= 8)
         {
             if (discardedPixels > 0) {
@@ -265,7 +287,14 @@ void PPU::pushPixels()
                 continue;
             }
 
-            const uint8_t pixel = pixelFIFO.front();
+            // If object fifo has a pixel, use it instead of bg pixel
+            uint8_t pixel;
+            if (!objectFIFO.empty()) {
+                pixel = objectFIFO.front();
+                objectFIFO.pop();
+            } else {
+                pixel = pixelFIFO.front();
+            }
             pixelFIFO.pop();
 
             LCD[LY][currentX] = colorPalette[pixel];
@@ -285,6 +314,7 @@ void PPU::PixelTransferToHBlankTransition()
     if (windowActive) { // Only increment if the window was active this scanline
         windowLineCounter++;
     }
+    OAMInALinePointer = 0;
     windowActive = false;
     currentX = 0;
     mode = 0;
