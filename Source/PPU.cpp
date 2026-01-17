@@ -258,7 +258,7 @@ void PPU::stepOBJFetcher(const OBJ& obj)
 TileSource PPU::getBGSource() const
 {
     const uint8_t bgY = (SCY + LY) & 0xFF;
-    const uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
+    const uint16_t tilemapBase = (getLCDCFlags(BGTileMapArea)) ? 0x9C00 : 0x9800;
     const uint8_t tileX = ((SCX >> 3) + bgFetcher.fetcherX) & 0x1F;
     const uint8_t tileY = (bgY >> 3) & 0x1F;
     const uint8_t tileLine = bgY & 7;
@@ -274,7 +274,7 @@ TileSource PPU::getBGSource() const
 TileSource PPU::getWindowSource() const
 {
     const uint8_t winY = windowLineCounter;
-    const uint16_t tilemapBase = (LCDC & 0x08) ? 0x9C00 : 0x9800;
+    const uint16_t tilemapBase = (getLCDCFlags(WindowTileMapArea)) ? 0x9C00 : 0x9800;
     const uint8_t tileY = (winY >> 3) & 0x1F;
     const uint8_t tileLine = winY & 7;
 
