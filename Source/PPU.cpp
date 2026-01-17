@@ -197,11 +197,61 @@ void PPU::stepBGFetcher()
     }
 }
 
-void PPU::stepOBJFetcher(OBJ& obj)
+void PPU::stepOBJFetcher(const OBJ& obj)
 {
-    for (int j = 0; j < 8; j++)
+    bool is8x16 = LCDC & 0x04;
+
+    uint8_t tileIndex = obj.tileIndex;
+    if (is8x16)
+        tileIndex &= 0xFE;
+
+    int spriteY = LY + 16;
+    int line = spriteY - obj.yPosition;
+
+    // Priority
+    bool priority = getAttributeFlags(Priority, obj.attributes);
+
+    // Y flip
+    if (getAttributeFlags(YFlip, obj.attributes))
+        line = is8x16 ? (15 - line) : (7 - line);
+
+    if (is8x16 && line >= 8) {
+        tileIndex++;
+        line -= 8;
+    }
+
+    // X flip
+    bool xFlip = getAttributeFlags(XFlip, obj.attributes);
+
+    // DMG Palette
+    uint8_t obp =
+    getAttributeFlags(DMGPalette, obj.attributes)
+        ? OBP1
+        : OBP0;
+
+    uint16_t tileAddr =
+        0x8000 +
+        tileIndex * 16 +
+        line * 2;
+
+    uint8_t low  = bus->read(tileAddr);
+    uint8_t high = bus->read(tileAddr + 1);
+
+    for (int i = 0; i < 8; i++)
     {
-        objectFIFO.push(3);
+        int bit = xFlip ? i : (7 - i); // Reversed the order of the color being pushed
+
+        uint8_t color =
+            ((high >> bit) & 1) << 1 |
+            ((low  >> bit) & 1);
+
+        if (color == 0) {
+            objectFIFO.push({TRANSPARENT, priority});
+            continue;
+        }
+
+        uint8_t shade = (obp >> (color * 2)) & 0x03;
+        objectFIFO.push({shade, priority});
     }
 }
 
@@ -290,7 +340,11 @@ void PPU::pushPixels()
             // If object fifo has a pixel, use it instead of bg pixel
             uint8_t pixel;
             if (!objectFIFO.empty()) {
-                pixel = objectFIFO.front();
+                pixel = objectFIFO.front().color;
+                if (pixel == TRANSPARENT || (objectFIFO.front().priority && pixelFIFO.front() != 0))
+                {
+                    pixel = pixelFIFO.front();
+                }
                 objectFIFO.pop();
             } else {
                 pixel = pixelFIFO.front();
@@ -365,6 +419,11 @@ bool PPU::getLCDCFlags(const LCDCFlags f) const
 bool PPU::getSTATFlags(const STATFlags f) const
 {
     return (STAT & f) != 0;
+}
+
+bool PPU::getAttributeFlags(const AttributeFlags f, const uint8_t& OBJFlags)
+{
+    return (OBJFlags & f) != 0;
 }
 
 void PPU::setSTATFlags(const STATFlags f, const bool value) const

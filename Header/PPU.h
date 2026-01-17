@@ -20,10 +20,16 @@ struct TileFetcher {
 };
 
 struct TileSource {
-    uint16_t tilemapBase;
-    uint8_t tileX;
-    uint8_t tileY;
-    uint8_t tileLine;
+    uint16_t tilemapBase; // 0x9800 or 0x9C00
+    uint8_t tileX; // column in tilemap (0–31)
+    uint8_t tileY; // row in tilemap (0–31)
+    uint8_t tileLine; // row inside the tile (0–7)
+};
+
+struct OBJPixel
+{
+    uint8_t color;
+    bool priority;
 };
 
 class Bus;
@@ -32,6 +38,7 @@ class PPU {
 public:
     explicit PPU(Bus* bus);
     ~PPU() = default;
+    static constexpr uint8_t TRANSPARENT = 4;
 
     static constexpr std::array<uint32_t, 4> colorPalette = {0xffffffff, 0xffa9a9a9, 0xff545454, 0xff000000};
     uint32_t LCD[144][160]{};
@@ -74,6 +81,14 @@ public:
         PPUModeBit0 = (1 << 0),
     };
 
+    enum AttributeFlags
+    {
+        Priority = (1 << 7),
+        YFlip = (1 << 6),
+        XFlip = (1 << 5),
+        DMGPalette = (1 << 4),
+    };
+
 private:
     Bus* bus;
 
@@ -92,7 +107,7 @@ private:
     uint8_t& WX;
 
     std::queue<uint8_t> pixelFIFO;
-    std::queue<uint8_t> objectFIFO;
+    std::queue<OBJPixel> objectFIFO; // int_8 for the case of -1 (transparent)
     std::vector<OBJ> OAMInALine;
     int OAMInALinePointer = 0;
 
@@ -108,7 +123,7 @@ private:
     // Mode 3
     void PixelTransfer();
     void stepBGFetcher();
-    void stepOBJFetcher(OBJ& obj);
+    void stepOBJFetcher(const OBJ& obj);
     TileSource getBGSource() const;
     TileSource getWindowSource() const;
     bool usingWindow() const;
@@ -128,6 +143,7 @@ private:
     // Window active indicator
     uint8_t windowLineCounter = 0;
     bool windowActive = false;
+    bool windowWasVisibleThisLine = false;
     // Window pixel fetcher coordinate
     uint8_t windowFetcherX = 0;
     // Location of the current pixel in each frame
@@ -135,8 +151,9 @@ private:
     // Boolean value used to mimic the low to high transition of the STAT register
     bool prevSTATCondition = false;
 
-    bool getLCDCFlags(LCDCFlags f) const;
-    bool getSTATFlags(STATFlags f) const;
+    [[nodiscard]] bool getLCDCFlags(LCDCFlags f) const;
+    [[nodiscard]] bool getSTATFlags(STATFlags f) const;
+    bool getAttributeFlags(AttributeFlags f, const uint8_t& OBJFlags) ;
     void setSTATFlags(STATFlags f, bool value) const;
     void checkSTATInterrupt();
     void updateSTAT();
