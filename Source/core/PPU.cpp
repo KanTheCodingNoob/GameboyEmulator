@@ -199,7 +199,7 @@ void PPU::stepBGFetcher()
 
 void PPU::stepOBJFetcher(const OBJ& obj)
 {
-    bool is8x16 = LCDC & 0x04;
+    const bool is8x16 = LCDC & 0x04;
 
     uint8_t tileIndex = obj.tileIndex;
     if (is8x16)
@@ -221,25 +221,27 @@ void PPU::stepOBJFetcher(const OBJ& obj)
     }
 
     // X flip
-    bool xFlip = getAttributeFlags(XFlip, obj.attributes);
+    const bool xFlip = getAttributeFlags(XFlip, obj.attributes);
 
     // DMG Palette
-    uint8_t obp =
+    const uint8_t obp =
     getAttributeFlags(DMGPalette, obj.attributes)
         ? OBP1
         : OBP0;
 
-    uint16_t tileAddr =
+    const uint16_t tileAddr =
         0x8000 +
         tileIndex * 16 +
         line * 2;
 
-    uint8_t low  = bus->read(tileAddr);
-    uint8_t high = bus->read(tileAddr + 1);
+    const uint8_t low  = bus->read(tileAddr);
+    const uint8_t high = bus->read(tileAddr + 1);
 
-    for (int i = 0; i < 8; i++)
+    const size_t pixelIgnored = objectFIFO.size();
+
+    for (int i = static_cast<int>(pixelIgnored); i < 8; i++)
     {
-        int bit = xFlip ? i : (7 - i); // Reversed the order of the color being pushed
+        const int bit = xFlip ? i : (7 - i); // Reversed the order of the color being pushed
 
         uint8_t color =
             ((high >> bit) & 1) << 1 |
