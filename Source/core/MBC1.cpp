@@ -2,7 +2,7 @@
 // Created by ADMIN on 10/5/2025.
 //
 
-#include "../Header/MBC1.h"
+#include "../../Header/core/MBC1.h"
 
 MBC1::MBC1()
 = default;

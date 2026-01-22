@@ -2,24 +2,24 @@
 // Created by ADMIN on 10/23/2025.
 //
 
-#include "../Header/PPU.h"
+#include "../../Header/core/PPU.h"
 
 #include <algorithm>
 
-#include "../Header/Bus.h"
+#include "../../Header/core/Bus.h"
 
 PPU::PPU(Bus* bus): bus(bus),LCDC (bus->IORegisters[0x40]),
                     STAT(bus->IORegisters[0x41]),
-                     SCY ( bus->IORegisters[0x42]),
-                     SCX ( bus->IORegisters[0x43]),
-                     LY ( bus->IORegisters[0x44]),
-                     LYC ( bus->IORegisters[0x45]),
-                     DMA ( bus->IORegisters[0x46]),
-                     BGP ( bus->IORegisters[0x47]),
-                     OBP0 ( bus->IORegisters[0x48]),
-                     OBP1 ( bus->IORegisters[0x49]),
-                     WY ( bus->IORegisters[0x4A]),
-                     WX ( bus->IORegisters[0x4B])
+                    SCY ( bus->IORegisters[0x42]),
+                    SCX ( bus->IORegisters[0x43]),
+                    LY ( bus->IORegisters[0x44]),
+                    LYC ( bus->IORegisters[0x45]),
+                    DMA ( bus->IORegisters[0x46]),
+                    BGP ( bus->IORegisters[0x47]),
+                    OBP0 ( bus->IORegisters[0x48]),
+                    OBP1 ( bus->IORegisters[0x49]),
+                    WY ( bus->IORegisters[0x4A]),
+                    WX ( bus->IORegisters[0x4B])
 {
 }
 

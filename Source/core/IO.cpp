@@ -2,9 +2,9 @@
 // Created by ADMIN on 10/19/2025.
 //
 
-#include "../Header/IO.h"
+#include "../../Header/core/IO.h"
 
-#include "../Header/Bus.h"
+#include "../../Header/core/Bus.h"
 
 IO::IO(Bus *bus) : bus(bus), IORegisters(bus->IORegisters)
 {

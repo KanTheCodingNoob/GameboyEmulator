@@ -2,8 +2,8 @@
 // Created by anngu on 7/27/2025.
 //
 
-#include "../Header/Bus.h"
-#include "../Header/sm83.h"
+#include "../../Header/core/Bus.h"
+#include "../../Header/core/sm83.h"
 
 Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this), ppu(this)
 {}

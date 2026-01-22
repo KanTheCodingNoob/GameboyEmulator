@@ -2,7 +2,7 @@
 // Created by ADMIN on 11/12/2025.
 //
 
-#include "../Header/MBC0.h"
+#include "../../Header/core/MBC0.h"
 
 MBC0::MBC0()
 = default;

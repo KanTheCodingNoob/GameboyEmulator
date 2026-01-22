@@ -2,7 +2,7 @@
 // Created by ADMIN on 10/4/2025.
 //
 
-#include "../Header/Cartridge.h"
+#include "../../Header/core/Cartridge.h"
 
 
 Cartridge::Cartridge(const std::string& filename)

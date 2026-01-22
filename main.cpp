@@ -2,8 +2,8 @@
 #include <thread>
 #include <atomic>
 
-#include "Header/Bus.h"
-#include "Header/sm83.h"
+#include "Header/core/Bus.h"
+#include "Header/core/sm83.h"
 
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "SDL3/SDL.h"

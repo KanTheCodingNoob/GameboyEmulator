@@ -2,9 +2,9 @@
 // Created by ADMIN on 10/11/2025.
 //
 
-#include "../Header/Timer.h"
+#include "../../Header/core/Timer.h"
 
-#include "../Header/Bus.h"
+#include "../../Header/core/Bus.h"
 
 Timer::Timer(Bus *bus): bus(bus){}
 

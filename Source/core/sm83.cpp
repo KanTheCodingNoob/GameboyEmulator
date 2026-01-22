@@ -1,8 +1,8 @@
 //
 // Created by anngu on 7/24/2025.
 //
-#include "../Header/sm83.h"
-#include "../Header/Bus.h"
+#include "../../Header/core/sm83.h"
+#include "../../Header/core/Bus.h"
 
 
 sm83::sm83(Bus *bus): bus(bus)
