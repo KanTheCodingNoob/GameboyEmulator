@@ -205,7 +205,7 @@ void PPU::stepOBJFetcher(const OBJ& obj)
     if (is8x16)
         tileIndex &= 0xFE;
 
-    int spriteY = LY + 16;
+    const int spriteY = LY + 16;
     int line = spriteY - obj.yPosition;
 
     // Priority
@@ -237,9 +237,10 @@ void PPU::stepOBJFetcher(const OBJ& obj)
     const uint8_t low  = bus->read(tileAddr);
     const uint8_t high = bus->read(tileAddr + 1);
 
-    const size_t pixelIgnored = objectFIFO.size();
+    // Cover for overlapping OBJ, in which case the obj with the lower x coordinate take priority
+    const int pixelIgnored = static_cast<int>(objectFIFO.size());
 
-    for (int i = static_cast<int>(pixelIgnored); i < 8; i++)
+    for (int i = pixelIgnored; i < 8; i++)
     {
         const int bit = xFlip ? i : (7 - i); // Reversed the order of the color being pushed
 
@@ -252,7 +253,7 @@ void PPU::stepOBJFetcher(const OBJ& obj)
             continue;
         }
 
-        uint8_t shade = (obp >> (color * 2)) & 0x03;
+        const uint8_t shade = (obp >> (color * 2)) & 0x03;
         objectFIFO.push({shade, priority});
     }
 }
