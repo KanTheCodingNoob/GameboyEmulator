@@ -18,7 +18,7 @@ void Timer::tick()
     if (DIVCounter >= DIVIncrementCycle)
     {
         // Direct access since writing to the DIV register through the bus reset it to 0
-        bus->io.directIOWrite(DIVLocation, bus->io.directIORead(DIVLocation));
+        bus->io.directIOWrite(DIVLocation, bus->io.directIORead(DIVLocation) + 1);
         DIVCounter = 0;
     }
 
