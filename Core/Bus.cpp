@@ -2,8 +2,8 @@
 // Created by anngu on 7/27/2025.
 //
 
-#include "../../Header/core/Bus.h"
-#include "../../Header/core/sm83.h"
+#include "Bus.h"
+#include "sm83.h"
 
 Bus::Bus(): cpu(this), joypad(this), timer(this), interrupt(this), io(this), ppu(this)
 {}
@@ -38,7 +38,7 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) // Write external ram from cartridge
     {
-        cartridge->eram[addr - 0xA000] = data;
+        cartridge->eram[addr - 0xA000] = data; // Segmentation fault here
         return;
     }
     if (addr >= 0xC000 && addr <= 0xDFFF) // Write work ram

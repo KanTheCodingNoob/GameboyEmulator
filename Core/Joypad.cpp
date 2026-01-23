@@ -2,9 +2,9 @@
 // Created by ADMIN on 10/11/2025.
 //
 
-#include "../../Header/core/Joypad.h"
+#include "Joypad.h"
 
-#include "../../Header/core/Bus.h"
+#include "Bus.h"
 
 Joypad::Joypad(Bus* bus): bus(bus){}
 

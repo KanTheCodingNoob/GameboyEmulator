@@ -7,28 +7,28 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
 add_executable(GameboyEmu main.cpp
-        Source/core/sm83.cpp
-        Header/core/sm83.h
-        Source/core/Bus.cpp
-        Header/core/Bus.h
-        Source/core/Cartridge.cpp
-        Header/core/Cartridge.h
-        Source/core/MBC.cpp
-        Header/core/MBC.h
-        Source/core/MBC1.cpp
-        Header/core/MBC1.h
-        Source/core/Joypad.cpp
-        Header/core/Joypad.h
-        Source/core/Timer.cpp
-        Header/core/Timer.h
-        Source/core/Interrupt.cpp
-        Header/core/Interrupt.h
-        Source/core/IO.cpp
-        Header/core/IO.h
-        Source/core/PPU.cpp
-        Header/core/PPU.h
-        Source/core/MBC0.cpp
-        Header/core/MBC0.h
+        Core/sm83.cpp
+        Core/sm83.h
+        Core/Bus.cpp
+        Core/Bus.h
+        Core/Cartridge.cpp
+        Core/Cartridge.h
+        Core/MBC.cpp
+        Core/MBC.h
+        Core/MBC1.cpp
+        Core/MBC1.h
+        Core/Joypad.cpp
+        Core/Joypad.h
+        Core/Timer.cpp
+        Core/Timer.h
+        Core/Interrupt.cpp
+        Core/Interrupt.h
+        Core/IO.cpp
+        Core/IO.h
+        Core/PPU.cpp
+        Core/PPU.h
+        Core/MBC0.cpp
+        Core/MBC0.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD

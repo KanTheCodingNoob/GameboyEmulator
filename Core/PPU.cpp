@@ -2,11 +2,11 @@
 // Created by ADMIN on 10/23/2025.
 //
 
-#include "../../Header/core/PPU.h"
+#include "PPU.h"
 
 #include <algorithm>
 
-#include "../../Header/core/Bus.h"
+#include "Bus.h"
 
 PPU::PPU(Bus* bus): bus(bus),LCDC (bus->IORegisters[0x40]),
                     STAT(bus->IORegisters[0x41]),

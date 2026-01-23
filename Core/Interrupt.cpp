@@ -2,9 +2,9 @@
 // Created by ADMIN on 10/11/2025.
 //
 
-#include "../../Header/core/Interrupt.h"
+#include "Interrupt.h"
 
-#include "../../Header/core/Bus.h"
+#include "Bus.h"
 
 Interrupt::Interrupt(Bus *bus): bus(bus){}
 
