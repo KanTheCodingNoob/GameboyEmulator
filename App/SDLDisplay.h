@@ -7,6 +7,8 @@
 #include <atomic>
 #include <thread>
 
+#include "Emulator.h"
+#include "InputMapper.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_render.h"
 #include "SDL3/SDL_init.h"
@@ -15,21 +17,26 @@
 
 #include "../Core/Bus.h"
 
-class Display
+class SDLDisplay
 {
 public:
     static constexpr int WIDTH = 160;
     static constexpr int HEIGHT = 144;
 
-    Display();
-    ~Display();
+    SDLDisplay();
+    ~SDLDisplay();
 
     bool init();
+    void renderIdleScreen();
+    void loadCartridge(const std::string& path);
     void handleEvent(const SDL_Event& event);
     void iterate();
     void shutdown();
 
 private:
+    Emulator emulator;
+    InputMapper inputMapper;
+
     void backgroundTask();
 
     SDL_Window*   window   = nullptr;

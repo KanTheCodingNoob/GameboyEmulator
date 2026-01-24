@@ -11,10 +11,15 @@ Joypad::Joypad(Bus* bus): bus(bus){}
 Joypad::~Joypad()
 = default;
 
-void Joypad::handleKeyPressed(const SDL_Scancode scancode)
+void Joypad::handleKey(const KeyValue key_value, const bool pressed)
 {
-    const int key = scancodeToKey(scancode);
-    if (key < 0) return;
+    pressed ? handleKeyPressed(key_value)
+            : handleKeyReleased(key_value);
+}
+
+void Joypad::handleKeyPressed(KeyValue key_value)
+{
+    int key = static_cast<int>(key_value);
 
     // Already pressed? → no edge → no interrupt
     if (!(input & (1 << key)))
@@ -38,9 +43,9 @@ void Joypad::handleKeyPressed(const SDL_Scancode scancode)
     }
 }
 
-void Joypad::handleKeyReleased(const SDL_Scancode scancode)
+void Joypad::handleKeyReleased(KeyValue key_value)
 {
-    if (const int key = scancodeToKey(scancode); key >= 0)
+    if (const int key = static_cast<int>(key_value); key >= 0)
         input |= (1 << key);
 }
 
@@ -51,19 +56,19 @@ uint8_t Joypad::getJoypadState(const uint8_t& JOYPAD) const
     // Direction keys selected
     if (!(JOYPAD & (1 << 4)))
     {
-        if (!(input & (1 << right))) result &= ~(1 << 0);
-        if (!(input & (1 << left)))  result &= ~(1 << 1);
-        if (!(input & (1 << up)))    result &= ~(1 << 2);
-        if (!(input & (1 << down)))  result &= ~(1 << 3);
+        if (!(input & (1 << static_cast<int>(KeyValue::right)))) result &= ~(1 << 0);
+        if (!(input & (1 << static_cast<int>(KeyValue::left))))  result &= ~(1 << 1);
+        if (!(input & (1 << static_cast<int>(KeyValue::up))))    result &= ~(1 << 2);
+        if (!(input & (1 << static_cast<int>(KeyValue::down))))  result &= ~(1 << 3);
     }
 
     // Button keys selected
     if (!(JOYPAD & (1 << 5)))
     {
-        if (!(input & (1 << a)))      result &= ~(1 << 0);
-        if (!(input & (1 << b)))      result &= ~(1 << 1);
-        if (!(input & (1 << select))) result &= ~(1 << 2);
-        if (!(input & (1 << start)))  result &= ~(1 << 3);
+        if (!(input & (1 << static_cast<int>(KeyValue::a))))      result &= ~(1 << 0);
+        if (!(input & (1 << static_cast<int>(KeyValue::b))))      result &= ~(1 << 1);
+        if (!(input & (1 << static_cast<int>(KeyValue::select)))) result &= ~(1 << 2);
+        if (!(input & (1 << static_cast<int>(KeyValue::start))))  result &= ~(1 << 3);
     }
     return result;
 }

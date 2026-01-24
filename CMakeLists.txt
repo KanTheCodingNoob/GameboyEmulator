@@ -29,8 +29,12 @@ add_executable(GameboyEmu main.cpp
         Core/PPU.h
         Core/MBC0.cpp
         Core/MBC0.h
-        App/Display.cpp
-        App/Display.h
+        App/SDLDisplay.cpp
+        App/SDLDisplay.h
+        App/Emulator.cpp
+        App/Emulator.h
+        App/InputMapper.cpp
+        App/InputMapper.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD
