@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "MBC.h"
+#include "../MBC.h"
 
 
 class MBC0: public MBC {

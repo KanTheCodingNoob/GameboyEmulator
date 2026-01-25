@@ -15,8 +15,8 @@ add_executable(GameboyEmu main.cpp
         Core/Cartridge.h
         Core/MBC.cpp
         Core/MBC.h
-        Core/MBC1.cpp
-        Core/MBC1.h
+        Core/MBCs/MBC1.cpp
+        Core/MBCs/MBC1.h
         Core/Joypad.cpp
         Core/Joypad.h
         Core/Timer.cpp
@@ -27,8 +27,8 @@ add_executable(GameboyEmu main.cpp
         Core/IO.h
         Core/PPU.cpp
         Core/PPU.h
-        Core/MBC0.cpp
-        Core/MBC0.h
+        Core/MBCs/MBC0.cpp
+        Core/MBCs/MBC0.h
         App/SDLDisplay.cpp
         App/SDLDisplay.h
         App/Emulator.cpp

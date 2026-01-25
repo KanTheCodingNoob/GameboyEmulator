@@ -9,8 +9,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "MBC0.h"
-#include "MBC1.h"
+#include "MBCs/MBC0.h"
+#include "MBCs/MBC1.h"
 
 
 class Cartridge

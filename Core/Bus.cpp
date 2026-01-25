@@ -149,4 +149,21 @@ void Bus::clock()
     timer.tick();
 }
 
+void Bus::reset()
+{
+    cartridge = nullptr;
 
+    wram.fill(0);
+    vram.fill(0);
+    OAM.fill(0);
+    IORegisters.fill(0);
+    HRAM.fill(0);
+
+    IE = 0;
+    systemClockCounter = 0;
+
+    cpu.reset();
+    // ppu.reset();
+    joypad.reset();
+    timer.reset();
+}

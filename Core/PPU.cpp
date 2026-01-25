@@ -23,31 +23,6 @@ PPU::PPU(Bus* bus): bus(bus),LCDC (bus->IORegisters[0x40]),
 {
 }
 
-uint16_t PPU::returnVRAMAddress(const uint8_t addr, const bool object)
-{
-    if (object || (LCDC & 0x10))
-    {
-        return 0x8000 + addr;
-    }
-    return 0x9000 + static_cast<int8_t>(addr);
-}
-
-std::array<uint8_t, 8> PPU::returnPixelValuesFromTwoBytes(const uint8_t topLine, const uint8_t secondLine)
-{
-    std::array<uint8_t, 8> pixels{};
-    for (int i = 0; i < 8; i++)
-    {
-        const uint8_t lowBit  = (topLine >> (7 - i)) & 1;
-        const uint8_t highBit = (secondLine >> (7 - i)) & 1;
-        pixels[i] = (highBit << 1) | lowBit;
-    }
-    return pixels;
-}
-
-uint32_t PPU::bgColorHandler(uint8_t value)
-{
-}
-
 void PPU::clock()
 {
     switch (mode)
@@ -71,6 +46,17 @@ void PPU::clock()
     updateSTAT();
     checkSTATInterrupt();
 }
+
+// void PPU::reset()
+// {
+//     pixelFIFO = {};
+//     objectFIFO = {};
+//     OAMInALine = {};
+//     OAMInALinePointer = 0;
+//     OAMCycle = 0;
+//     PixelTransferCycle = 0;
+//     discardedPixels = 0;
+// }
 
 // Scan all OBJ in one go, then keep track of the cycle until it reaches 20 clocks
 // then move on to mode 3 (M-cycles clocks)

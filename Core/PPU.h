@@ -43,10 +43,6 @@ public:
     static constexpr std::array<uint32_t, 4> colorPalette = {0xffffffff, 0xffa9a9a9, 0xff545454, 0xff000000};
     uint32_t LCD[144][160]{};
 
-    uint16_t returnVRAMAddress(uint8_t addr, bool object);
-    std::array<uint8_t, 8> returnPixelValuesFromTwoBytes(uint8_t topLine, uint8_t secondLine);
-
-    uint32_t bgColorHandler(uint8_t value);
     // M-cycle clock
     void clock();
 
@@ -88,6 +84,8 @@ public:
         XFlip = (1 << 5),
         DMGPalette = (1 << 4),
     };
+
+    void reset();
 
 private:
     Bus* bus;

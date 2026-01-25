@@ -34,7 +34,7 @@ public:
     std::array<uint8_t, 128> IORegisters{};
     std::array<uint8_t, 127> HRAM{};
     uint8_t IE = 0;
-    uint8_t serialData = 0;
+    // uint8_t serialData = 0;
     uint64_t systemClockCounter = 0;
 
     void OAM_DMA_Transfer(uint8_t XX);
@@ -44,6 +44,7 @@ public:
 
     void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
     void clock();
+    void reset();
 };
 
 
