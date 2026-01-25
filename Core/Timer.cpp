@@ -80,4 +80,10 @@ void Timer::write(uint16_t addr, uint8_t data)
     }
 }
 
+void Timer::reset()
+{
+    DIVCounter = 0;
+    TIMACounter = 0;
+}
+
 

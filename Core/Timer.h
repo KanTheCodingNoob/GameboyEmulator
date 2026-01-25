@@ -13,6 +13,7 @@ public:
     ~Timer();
     void tick();
     void write(uint16_t addr, uint8_t data);
+    void reset();
 
     void connectBus(Bus* n)
     {
