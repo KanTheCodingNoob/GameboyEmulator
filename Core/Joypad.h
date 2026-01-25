@@ -17,6 +17,11 @@ public:
         bus = n;
     }
 
+    void reset()
+    {
+        input = 0xFF;
+    };
+
     enum class KeyValue
     {
         right = 0,

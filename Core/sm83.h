@@ -183,6 +183,8 @@ public:
     uint8_t SET_7_HLi(); uint8_t SET_7_A();
 
     void clock();
+    void reset();
+
 
     uint8_t checkInterrupts();
 

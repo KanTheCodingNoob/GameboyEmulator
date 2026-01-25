@@ -587,6 +587,23 @@ void sm83::clock() {
      cycle--;
 }
 
+void sm83::reset()
+{
+    AF_PAIR = {};
+    BC_PAIR = {};
+    DE_PAIR = {};
+    HL_PAIR = {};
+
+    SP = 0x0000;
+    PC = 0x0100;
+
+    IME = false;
+    IME_next = false;
+    halted = false;
+    haltBug = false;
+    stopped = false;
+}
+
 uint8_t sm83::checkInterrupts()
 {
     uint8_t IE = read(0xFFFF);
