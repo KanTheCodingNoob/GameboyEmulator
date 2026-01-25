@@ -33,8 +33,8 @@ add_executable(GameboyEmu main.cpp
         App/SDLDisplay.h
         App/Emulator.cpp
         App/Emulator.h
-        App/InputMapper.cpp
-        App/InputMapper.h
+        App/SDLInputMapper.cpp
+        App/SDLInputMapper.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD
