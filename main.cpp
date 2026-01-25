@@ -18,39 +18,6 @@ static SDL_Window *window = nullptr;
 static SDL_Renderer *renderer = nullptr;
 static SDL_Texture *texture = nullptr;
 
-static std::thread worker;
-
-static std::atomic<bool> running{true};
-Bus bus;
-uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
-
-void backgroundTask()
-{
-    std::shared_ptr<Cartridge> cartridge(new Cartridge("TestRoms/tetris.gb"));
-    bus.insertCartridge(cartridge);
-
-    using clock = std::chrono::steady_clock;
-
-    constexpr auto FRAME_DURATION =
-        std::chrono::duration_cast<clock::duration>(
-            std::chrono::duration<double>(1.0 / 59.7275)
-    );
-
-    auto nextFrame = clock::now();
-
-    while (running) // Roughly emulate the master clock
-    {
-        constexpr int M_CYCLES_PER_FRAME = 17556;
-        for (int i = 0; i < M_CYCLES_PER_FRAME; i++)
-        {
-            bus.clock();
-        }
-
-        nextFrame += FRAME_DURATION;
-        std::this_thread::sleep_until(nextFrame);
-    }
-}
-
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
