@@ -1,10 +1,3 @@
-#include <iomanip>
-#include <thread>
-#include <atomic>
-
-#include "Core/Bus.h"
-#include "Core/sm83.h"
-
 #define SDL_MAIN_USE_CALLBACKS 1
 #include "App/SDLDisplay.h"
 #include "SDL3/SDL.h"
