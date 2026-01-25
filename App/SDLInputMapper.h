@@ -4,12 +4,12 @@
 #include <SDL3/SDL.h>
 #include <unordered_map>
 
-class InputMapper {
+class SDLInputMapper {
 public:
     using Action = std::function<void(bool pressed)>;
 
-    explicit InputMapper(const std::unordered_map<SDL_Scancode, Action>& bindings);
-    ~InputMapper() = default;
+    explicit SDLInputMapper(const std::unordered_map<SDL_Scancode, Action>& bindings);
+    ~SDLInputMapper() = default;
 
     void bind(SDL_Scancode key, Action action);
     void handleKeyDown(SDL_Scancode scancode);

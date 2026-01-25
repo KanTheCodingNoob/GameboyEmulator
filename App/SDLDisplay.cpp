@@ -10,15 +10,15 @@
 
 SDLDisplay::SDLDisplay()
 : inputMapper({
-    {SDL_SCANCODE_RIGHT,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::right, p); }},
-    {SDL_SCANCODE_LEFT,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::left, p); }},
-    {SDL_SCANCODE_UP,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::up, p); }},
-    {SDL_SCANCODE_DOWN,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::down, p); }},
+    {SDL_SCANCODE_RIGHT,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::right, p); }},
+    {SDL_SCANCODE_LEFT,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::left, p); }},
+    {SDL_SCANCODE_UP,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::up, p); }},
+    {SDL_SCANCODE_DOWN,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::down, p); }},
 
-    {SDL_SCANCODE_Z,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::a, p); }},
-    {SDL_SCANCODE_X,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::b, p); }},
-    {SDL_SCANCODE_RETURN,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::start, p); }},
-    {SDL_SCANCODE_RSHIFT,  [this](const bool p) {bus.joypad.handleKey(Joypad::KeyValue::select, p); }},
+    {SDL_SCANCODE_Z,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::a, p); }},
+    {SDL_SCANCODE_X,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::b, p); }},
+    {SDL_SCANCODE_RETURN,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::start, p); }},
+    {SDL_SCANCODE_RSHIFT,  [this](const bool p) {emulator.bus.joypad.handleKey(Joypad::KeyValue::select, p); }},
 })
 {}
 SDLDisplay::~SDLDisplay() {
@@ -138,9 +138,7 @@ void SDLDisplay::iterate()
 
 void SDLDisplay::shutdown()
 {
-    running = false;
-    if (worker.joinable())
-        worker.join();
+    emulator.stop();
 
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);

@@ -27,6 +27,7 @@ public:
     bool loadCartridge(const std::string& path);
     [[nodiscard]] bool hasRom() const;
 
+    Bus bus;
     // framebuffer (for renderer)
     uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 
@@ -36,6 +37,5 @@ private:
     std::atomic<bool> running{false};
     std::thread thread;
 
-    Bus bus;
     std::shared_ptr<Cartridge> cartridge;
 };

@@ -8,7 +8,7 @@
 #include <thread>
 
 #include "Emulator.h"
-#include "InputMapper.h"
+#include "SDLInputMapper.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_render.h"
 #include "SDL3/SDL_init.h"
@@ -36,7 +36,7 @@ public:
 
 private:
     Emulator emulator;
-    InputMapper inputMapper;
+    SDLInputMapper inputMapper;
 
     static void onRomSelected(
         void* userdata,
@@ -48,16 +48,8 @@ private:
         { "Game Boy ROMs", "gb" },
     };
 
-    void backgroundTask();
-
     SDL_Window*   window   = nullptr;
     SDL_Renderer* renderer = nullptr;
     SDL_Texture*  texture  = nullptr;
-
-    std::thread worker;
-    std::atomic<bool> running{true};
-
-    Bus bus;
-    uint32_t (&framebuffer)[HEIGHT][WIDTH] = bus.ppu.LCD;
 };
 
