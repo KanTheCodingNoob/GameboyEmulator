@@ -49,22 +49,22 @@ Cartridge::Cartridge(const std::string& filename)
     switch (ramSize)
     {
         case 0x00:
-            eram.clear();
+            eram.resize(0x2000);
             break;
         case 0x01:
-            eram.resize(2048);
+            eram.resize(0x800);
             break;
         case 0x02:
-            eram.resize(8192);
+            eram.resize(0x2000);
             break;
         case 0x03:
-            eram.resize(32768);
+            eram.resize(0x8000);
             break;
         case 0x04:
-            eram.resize(131072);
+            eram.resize(0x20000);
             break;
         case 0x05:
-            eram.resize(65536);
+            eram.resize(0x10000);
             break;
         default:
             std::cerr << "Unknown RAM size code: 0x"
