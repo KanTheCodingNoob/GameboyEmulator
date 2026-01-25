@@ -4,16 +4,11 @@
 
 
 #pragma once
-#include <atomic>
-#include <thread>
 
 #include "Emulator.h"
 #include "SDLInputMapper.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_render.h"
-#include "SDL3/SDL_init.h"
-#include "SDL3/SDL_log.h"
-
 
 #include "../Core/Bus.h"
 
@@ -28,8 +23,6 @@ public:
 
     bool init();
     void renderIdleScreen();
-    void openRomDialog();
-    void loadCartridge(const std::string& path);
     void handleEvent(const SDL_Event& event);
     void iterate();
     void shutdown();
@@ -37,6 +30,9 @@ public:
 private:
     Emulator emulator;
     SDLInputMapper inputMapper;
+
+    void openRomDialog();
+    void loadCartridge(const std::string& path);
 
     static void onRomSelected(
         void* userdata,
