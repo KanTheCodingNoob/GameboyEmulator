@@ -28,6 +28,7 @@ public:
 
     bool init();
     void renderIdleScreen();
+    void openRomDialog();
     void loadCartridge(const std::string& path);
     void handleEvent(const SDL_Event& event);
     void iterate();
@@ -36,6 +37,16 @@ public:
 private:
     Emulator emulator;
     InputMapper inputMapper;
+
+    static void onRomSelected(
+        void* userdata,
+        const char* const* filelist,
+        int filter
+        );
+
+    SDL_DialogFileFilter filters[1] = {
+        { "Game Boy ROMs", "gb" },
+    };
 
     void backgroundTask();
 

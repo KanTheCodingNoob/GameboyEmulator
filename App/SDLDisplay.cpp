@@ -53,7 +53,6 @@ bool SDLDisplay::init()
         WIDTH, HEIGHT
     );
 
-    worker = std::thread(&SDLDisplay::backgroundTask, this);
     return true;
 }
 
@@ -74,39 +73,48 @@ void SDLDisplay::renderIdleScreen()
     SDL_RenderPresent(renderer);
 }
 
-// void SDLDisplay::loadCartridge(const std::string& path)
-// {
-//     emulator.loadCartridge(path);
-//     emulator.start();
-// }
-
-void SDLDisplay::backgroundTask()
+void SDLDisplay::openRomDialog()
 {
-    const auto cartridge = std::make_shared<Cartridge>("TestRoms/tetris.gb");
-    bus.insertCartridge(cartridge);
+    SDL_ShowOpenFileDialog(
+        &SDLDisplay::onRomSelected,
+        this,               // userdata
+        window,             // parent window
+        filters,            // Only gb file
+        SDL_arraysize(filters), // filter count
+        nullptr,            // default location
+        false               // allow multiple
+    );
+}
 
-    using clock = std::chrono::steady_clock;
-    constexpr auto FRAME_DURATION =
-        std::chrono::duration_cast<clock::duration>(
-            std::chrono::duration<double>(1.0 / 59.7275)
-        );
 
-    auto nextFrame = clock::now();
+void SDLDisplay::onRomSelected(
+    void* userdata,
+    const char* const* filelist,
+    int filter
+)
+{
+    if (!filelist || !filelist[0])
+        return; // user cancelled
 
-    while (running) {
-        constexpr int M_CYCLES_PER_FRAME = 17556;
-        for (int i = 0; i < M_CYCLES_PER_FRAME; i++) {
-            bus.clock();
-        }
+    auto* display =
+        static_cast<SDLDisplay*>(userdata);
 
-        nextFrame += FRAME_DURATION;
-        std::this_thread::sleep_until(nextFrame);
-    }
+    display->loadCartridge(filelist[0]);
+}
+
+void SDLDisplay::loadCartridge(const std::string& path)
+{
+    emulator.loadCartridge(path);
+    emulator.start();
 }
 
 void SDLDisplay::handleEvent(const SDL_Event& event)
 {
     if (event.type == SDL_EVENT_KEY_DOWN) {
+        if ((event.key.mod & SDL_KMOD_CTRL) && event.key.scancode == SDL_SCANCODE_O && !emulator.hasRom())
+        {
+            openRomDialog();
+        }
         inputMapper.handleKeyDown(event.key.scancode);
     }
     else if (event.type == SDL_EVENT_KEY_UP) {
@@ -116,13 +124,13 @@ void SDLDisplay::handleEvent(const SDL_Event& event)
 
 void SDLDisplay::iterate()
 {
-    // if (!emulator.hasRom())
-    // {
-    //     renderIdleScreen();
-    //     return;
-    // }
+    if (!emulator.hasRom())
+    {
+        renderIdleScreen();
+        return;
+    }
 
-    SDL_UpdateTexture(texture, nullptr, framebuffer, WIDTH * sizeof(uint32_t));
+    SDL_UpdateTexture(texture, nullptr, emulator.framebuffer, WIDTH * sizeof(uint32_t));
     SDL_RenderClear(renderer);
     SDL_RenderTexture(renderer, texture, nullptr, nullptr);
     SDL_RenderPresent(renderer);
