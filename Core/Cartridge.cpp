@@ -88,10 +88,18 @@ uint8_t Cartridge::readBank01_nn(const uint16_t addr)
 }
 
 // Rom is read only, so the write operation actual purpose is to have the MBC point to the correct bank
-void Cartridge::write(uint16_t addr, uint8_t data)
+void Cartridge::writeToRom(uint16_t addr, uint8_t data)
 {
     mapper->MBCWrite(addr, data);
     bank01_NN = &rom[0x4000 * mapper->romBankNum];
+}
+
+void Cartridge::writeToRam(uint16_t addr, uint8_t data)
+{
+    if (mapper->ramEnabled)
+    {
+        eram[addr - 0xA000] = data;
+    }
 }
 
 

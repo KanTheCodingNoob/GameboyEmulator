@@ -21,7 +21,8 @@ public:
     uint8_t readBank00(uint16_t addr);
     uint8_t readBank01_nn(uint16_t addr);
 
-    void write(uint16_t addr, uint8_t data);
+    void writeToRom(uint16_t addr, uint8_t data);
+    void writeToRam(uint16_t addr, uint8_t data);
 
     std::vector<uint8_t> eram; // Occupy A000 - BFFF in bus
     std::vector<uint8_t> rom;

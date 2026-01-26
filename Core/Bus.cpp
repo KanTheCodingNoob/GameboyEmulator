@@ -28,7 +28,7 @@ void Bus::OAM_DMA_Transfer(const uint8_t XX)
 void Bus::write(const uint16_t addr, const uint8_t data) {
     if (addr <= 0x7FFF) // Write to Bank 00 (Not actually writable to rom, the actual purpose is to adjust the mapper)
     {
-        cartridge->write(addr, data);
+        cartridge->writeToRom(addr, data);
         return;
     }
     if (addr >= 0x8000 && addr <= 0x9FFF) // Write Vram
@@ -38,7 +38,7 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) // Write external ram from cartridge
     {
-        cartridge->eram[addr - 0xA000] = data; // Segmentation fault here
+        cartridge->writeToRam(data, addr);
         return;
     }
     if (addr >= 0xC000 && addr <= 0xDFFF) // Write work ram
