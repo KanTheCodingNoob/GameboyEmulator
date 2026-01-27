@@ -10,7 +10,6 @@ class MBC {
 public:
     virtual ~MBC() = default;
 
-    bool mode = true; // true = default mode, false = alternate mode
     bool ramEnabled = false; // Whether external ram is used
     uint8_t romBankNum = 1; // ROM bank number
     uint8_t ramBankNum = 0; // RAM bank number
