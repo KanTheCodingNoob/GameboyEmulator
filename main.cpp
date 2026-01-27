@@ -3,14 +3,6 @@
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_main.h"
 
-#define WIDTH 160
-#define HEIGHT 144
-
-/* We will use this renderer to draw into this window every frame. */
-static SDL_Window *window = nullptr;
-static SDL_Renderer *renderer = nullptr;
-static SDL_Texture *texture = nullptr;
-
 /* This function runs once at startup. */
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 {
