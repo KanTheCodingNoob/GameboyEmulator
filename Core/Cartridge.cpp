@@ -27,21 +27,21 @@ Cartridge::Cartridge(const std::string& filename)
     ifs.close();
     // 0147 - Cartridge type
     // Handling different cartridge type, most notably its mapper
-    switch (rom[0x0147])
+    switch (static_cast<Type>(rom[CARTRIDGE_TYPE_ADDR]))
     {
-    case 0x00:
+        case Type::ROM_ONLY:
             mapper = std::make_unique<MBC0>(rom, eram);
             break;
-        case 0x01:
+        case Type::MBC1:
             mapper = std::make_unique<MBC1>(rom, eram);
             break;
         default:
-            break;
+            throw std::runtime_error("Unsupported cartridge type 0x" + std::to_string(rom[CARTRIDGE_TYPE_ADDR]));
     }
 
     // 0149 — RAM size
     // Resize external RAM based on how much RAM is present on the cartridge, if any
-    uint8_t ramSize = rom[0x0149];
+    uint8_t ramSize = rom[RAM_SIZE_ADDR];
     switch (ramSize)
     {
         case 0x00:

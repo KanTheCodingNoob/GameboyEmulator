@@ -22,6 +22,27 @@ public:
     uint8_t read(uint16_t addr);
     void write(uint16_t addr, uint8_t data);
 
+    enum class Type : uint8_t
+    {
+        ROM_ONLY = 0x00,
+        MBC1 = 0x01,
+        MBC1_RAM = 0x02,
+        MBC1_RAM_BATTERY = 0x03,
+        MBC2 = 0x05,
+        MBC2_BATTERY = 0x06,
+        MBC3_TIMER_BATTERY = 0x0F,
+        MBC3_TIMER_RAM_BATTERY = 0x10,
+        MBC3 = 0x11,
+        MBC3_RAM = 0x12,
+        MBC3_RAM_BATTERY = 0x13,
+        MBC5 = 0x19,
+        MBC5_RAM = 0x1A,
+        MBC5_RAM_BATTERY = 0x1B,
+    };
+
+    static constexpr uint16_t CARTRIDGE_TYPE_ADDR = 0x0147;
+    static constexpr uint16_t RAM_SIZE_ADDR = 0x0149;
+
 private:
     std::vector<uint8_t> eram; // Occupy A000 - BFFF in bus
     std::vector<uint8_t> rom;
