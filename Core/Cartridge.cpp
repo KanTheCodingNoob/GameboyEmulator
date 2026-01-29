@@ -35,6 +35,12 @@ Cartridge::Cartridge(const std::string& filename)
         case Type::MBC1:
             mapper = std::make_unique<MBC1>(rom, eram);
             break;
+        case Type::MBC1_RAM:
+            mapper = std::make_unique<MBC1>(rom, eram);
+            break;
+        case Type::MBC1_RAM_BATTERY:
+            mapper = std::make_unique<MBC1>(rom, eram);
+            break;
         default:
             throw std::runtime_error("Unsupported cartridge type 0x" + std::to_string(rom[CARTRIDGE_TYPE_ADDR]));
     }
