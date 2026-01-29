@@ -12,36 +12,49 @@ MBC1::~MBC1()
 
 uint8_t MBC1::read(const uint16_t addr)
 {
-    if (!bankingMode) // Simple mode
+    // 0000–3FFF (ROM Bank 00 or Banks 00/20/40/60)
+    if (addr <= 0x3FFF)
     {
-        // 0000–3FFF (fixed bank 0 in mode 0)
-        if (addr <= 0x3FFF)
+        if (!bankingMode) // Mode 0
         {
             return rom[addr];
         }
-        // 4000–7FFF (switchable bank)
-        if (addr <= 0x7FFF)
+        else // Mode 1
         {
-            uint8_t bankNumber = romBankNumber;
-            if (bankNumber == 0) bankNumber = 1; // In simple mode 0 is treated as 1
-            bankNumber %= totalBanks;
-
-            const uint32_t index  = bankNumber * 0x4000 + (addr - 0x4000);
+            uint8_t bankNumber = (ramBankNumber << 5) % romBankCount;
+            const uint32_t index = (bankNumber * 0x4000) + addr;
             return rom[index];
         }
-        // A000–BFFF (RAM, bank 0 only in mode 0)
-        if (addr >= 0xA000 && addr <= 0xBFFF)
-        {
-            if (!ramEnable) return 0xFF;
+    }
 
-            if (const uint32_t index = addr - 0xA000; index < eram.size())
-                return eram[index];
-
-            return 0xFF;
-        }
-    } else // Advanced mode
+    // 4000–7FFF (ROM Bank 01-7F)
+    if (addr <= 0x7FFF)
     {
+        uint8_t bankNumber = romBankNumber;
+        if (bankNumber == 0) bankNumber = 1;
+        bankNumber |= (ramBankNumber << 5);
+        bankNumber %= romBankCount;
 
+        const uint32_t index = (bankNumber * 0x4000) + (addr - 0x4000);
+        return rom[index];
+    }
+
+    // A000–BFFF (RAM Bank 00-03)
+    if (addr >= 0xA000 && addr <= 0xBFFF)
+    {
+        if (!ramEnable || eram.empty()) return 0xFF;
+
+        uint32_t ramOffset = 0;
+        if (bankingMode) // Mode 1
+        {
+            ramOffset = ramBankNumber * 0x2000;
+        }
+
+        const uint32_t index = ramOffset + (addr - 0xA000);
+        if (index < eram.size())
+            return eram[index];
+
+        return 0xFF;
     }
 
     return 0xFF; // Garbage data
@@ -70,9 +83,16 @@ void MBC1::write(const uint16_t addr, const uint8_t data)
     }
     if (addr >= 0xA000 && addr <= 0xBFFF)
     {
-        if (ramEnable)
+        if (ramEnable && !eram.empty())
         {
-            if (const uint32_t index = addr - 0xA000; index < eram.size())
+            uint32_t ramOffset = 0;
+            if (bankingMode) // Mode 1
+            {
+                ramOffset = ramBankNumber * 0x2000;
+            }
+
+            const uint32_t index = ramOffset + (addr - 0xA000);
+            if (index < eram.size())
                 eram[index] = data;
         }
     }
