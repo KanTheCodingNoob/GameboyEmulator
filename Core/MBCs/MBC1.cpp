@@ -80,6 +80,7 @@ void MBC1::write(const uint16_t addr, const uint8_t data)
     if (addr >= 0x6000 && addr <= 0x7FFF) // Extract the first 1 bit
     {
         bankingMode = data & 0x01;
+        return;
     }
     if (addr >= 0xA000 && addr <= 0xBFFF)
     {
