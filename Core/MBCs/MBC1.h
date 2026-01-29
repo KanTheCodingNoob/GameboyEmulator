@@ -16,7 +16,7 @@ public:
     uint8_t romBankNumber = 0;
     uint8_t ramBankNumber = 0; // Can be used as extra 2 bit for rom larger than 512 Kb in mode 1
 
-    uint8_t totalBanks = rom.size() / 0x4000 - 1;
+    uint8_t totalBanks = rom.size() / 0x4000;
 
     uint8_t read(uint16_t addr) override;
     void write(uint16_t addr, uint8_t data) override;

@@ -14,11 +14,13 @@ uint8_t MBC1::read(const uint16_t addr)
 {
     if (!bankingMode) // Simple mode
     {
+        // 0000–3FFF (fixed bank 0 in mode 0)
         if (addr <= 0x3FFF)
         {
             return rom[addr];
         }
-        if (addr >= 0x4000 && addr <= 0x7FFF)
+        // 4000–7FFF (switchable bank)
+        if (addr <= 0x7FFF)
         {
             uint8_t bankNumber = romBankNumber;
             if (bankNumber == 0) bankNumber = 1; // In simple mode 0 is treated as 1
@@ -27,6 +29,7 @@ uint8_t MBC1::read(const uint16_t addr)
             const uint32_t index  = bankNumber * 0x4000 + (addr - 0x4000);
             return rom[index];
         }
+        // A000–BFFF (RAM, bank 0 only in mode 0)
         if (addr >= 0xA000 && addr <= 0xBFFF)
         {
             if (!ramEnable) return 0xFF;
@@ -41,13 +44,6 @@ uint8_t MBC1::read(const uint16_t addr)
 
     }
 
-    if (addr >= 0xA000 && addr <= 0xBFFF)
-    {
-        if (ramEnable)
-        {
-            // Consider banking
-        }
-    }
     return 0xFF; // Garbage data
 }
 
