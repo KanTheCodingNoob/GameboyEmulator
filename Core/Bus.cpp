@@ -28,7 +28,7 @@ void Bus::OAM_DMA_Transfer(const uint8_t XX)
 void Bus::write(const uint16_t addr, const uint8_t data) {
     if (addr <= 0x7FFF) // Write to Bank 00 (Not actually writable to rom, the actual purpose is to adjust the mapper)
     {
-        cartridge->writeToRom(addr, data);
+        cartridge->write(addr, data);
         return;
     }
     if (addr >= 0x8000 && addr <= 0x9FFF) // Write Vram
@@ -38,7 +38,7 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) // Write external ram from cartridge
     {
-        cartridge->writeToRam(data, addr);
+        cartridge->write(addr, data);
         return;
     }
     if (addr >= 0xC000 && addr <= 0xDFFF) // Write work ram
@@ -92,13 +92,9 @@ void Bus::write(const uint16_t addr, const uint8_t data) {
 }
 
 uint8_t Bus::read(const uint16_t addr) {
-    if (addr <= 0x3FFF) // Read Bank 00
+    if (addr <= 0x7FFF) // Read rom
     {
-        return cartridge->readBank00(addr);
-    }
-    if (addr >= 0x4000 && addr <= 0x7FFF) // Read bank NN (NN is based on the mapper on the cartridge)
-    {
-        return cartridge->readBank01_nn(addr - 0x4000); // Modify the address to properly read bank 01_NN array
+        return cartridge->read(addr);
     }
     if (addr >= 0x8000 && addr <= 0x9FFF) // Read Vram
     {
@@ -106,7 +102,7 @@ uint8_t Bus::read(const uint16_t addr) {
     }
     if (addr >= 0xA000 && addr <= 0xBFFF) // Read external ram from cartridge
     {
-        return cartridge->eram[addr - 0xA000];
+        return cartridge->read(addr);
     }
     if (addr >= 0xC000 && addr <= 0xDFFF) // Read work ram
     {

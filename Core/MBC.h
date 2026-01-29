@@ -4,15 +4,18 @@
 
 #pragma once
 #include <cstdint>
+#include <vector>
 
 
 class MBC {
 public:
     virtual ~MBC() = default;
+    virtual uint8_t read(uint16_t addr) = 0;
+    virtual void write(uint16_t addr, uint8_t data) = 0;
+protected:
 
-    bool ramEnabled = false; // Whether external ram is used
-    uint8_t romBankNum = 1; // ROM bank number
-    uint8_t ramBankNum = 0; // RAM bank number
-
-    virtual bool MBCWrite(uint16_t addr, uint8_t data) = 0;
+    std::vector<uint8_t>& rom;
+    std::vector<uint8_t>& eram;
+    MBC(std::vector<uint8_t>& rom, std::vector<uint8_t>& eram):
+        rom(rom), eram(eram) {}
 };

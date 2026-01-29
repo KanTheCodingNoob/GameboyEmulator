@@ -8,8 +8,9 @@
 
 class MBC0: public MBC {
 public:
-    MBC0();
+    MBC0(std::vector<uint8_t>& rom, std::vector<uint8_t>& eram);
     ~MBC0() override;
 
-    bool MBCWrite(uint16_t addr, uint8_t data) override;
+    uint8_t read(uint16_t addr) override;
+    void write(uint16_t addr, uint8_t data) override;
 };

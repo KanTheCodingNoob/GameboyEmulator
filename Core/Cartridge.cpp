@@ -25,19 +25,15 @@ Cartridge::Cartridge(const std::string& filename)
     }
 
     ifs.close();
-
-    bank00 = &rom[0]; // Assign the pointer to the first 16KiB of Rom, occupy 0000 - 3FFF from bus
-    bank01_NN = &rom[0x4000]; // Assign the switchable pointer to the next 16KiB of Rom
-
     // 0147 - Cartridge type
     // Handling different cartridge type, most notably its mapper
-    switch (bank00[0x0147])
+    switch (rom[0x0147])
     {
     case 0x00:
-            mapper = std::make_unique<MBC0>();
+            mapper = std::make_unique<MBC0>(rom, eram);
             break;
         case 0x01:
-            mapper = std::make_unique<MBC1>();
+            mapper = std::make_unique<MBC1>(rom, eram);
             break;
         default:
             break;
@@ -45,7 +41,7 @@ Cartridge::Cartridge(const std::string& filename)
 
     // 0149 — RAM size
     // Resize external RAM based on how much RAM is present on the cartridge, if any
-    uint8_t ramSize = bank00[0x0149];
+    uint8_t ramSize = rom[0x0149];
     switch (ramSize)
     {
         case 0x00:
@@ -76,30 +72,13 @@ Cartridge::Cartridge(const std::string& filename)
 Cartridge::~Cartridge()
 = default;
 
-// Return data from the rom
-uint8_t Cartridge::readBank00(const uint16_t addr)
+
+uint8_t Cartridge::read(const uint16_t addr)
 {
-    return bank00[addr];
+    return mapper->read(addr);
 }
 
-uint8_t Cartridge::readBank01_nn(const uint16_t addr)
+void Cartridge::write(const uint16_t addr, const uint8_t data)
 {
-    return bank01_NN[addr];
+    mapper->write(addr, data);
 }
-
-// Rom is read only, so the write operation actual purpose is to have the MBC point to the correct bank
-void Cartridge::writeToRom(uint16_t addr, uint8_t data)
-{
-    mapper->MBCWrite(addr, data);
-    bank01_NN = &rom[0x4000 * mapper->romBankNum];
-}
-
-void Cartridge::writeToRam(uint16_t addr, uint8_t data)
-{
-    if (mapper->ramEnabled)
-    {
-        eram[addr - 0xA000] = data;
-    }
-}
-
-

@@ -8,9 +8,11 @@
 
 class MBC1: public MBC {
 public:
-    MBC1();
+    MBC1(std::vector<uint8_t>& rom, std::vector<uint8_t>& eram);
     ~MBC1() override;
+
     bool mode = true; // true = default mode, false = alternate mode
 
-    bool MBCWrite(uint16_t addr, uint8_t data) override;
+    uint8_t read(uint16_t addr) override;
+    void write(uint16_t addr, uint8_t data) override;
 };
