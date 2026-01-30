@@ -78,6 +78,22 @@ I have use these following test to validate my program's accuracy:
 * Implement more widely-used MBC types (MBC3, MBC5)
 * APU Implementation
 
+## How to Build
+Requirements
+
+* C++17+ compiler
+* CMake
+
+Build (Window)
+
+```bash
+git clone https://github.com/KanTheCodingNoob/GameboyEmulator.git
+cd GameboyEmulator
+git clone https://github.com/libsdl-org/SDL.git vendored/SDL
+cmake -S . -B build
+cmake --build build
+```
+The executable will be in the build folder
+
 ## Disclaimer
 This emulator is for educational purposes. Users must provide their own legally obtained ROMs.
-
