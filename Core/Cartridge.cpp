@@ -4,6 +4,8 @@
 
 #include "Cartridge.h"
 
+#include "MBCs/MBC2.h"
+
 
 Cartridge::Cartridge(const std::string& filename)
 {
@@ -33,13 +35,13 @@ Cartridge::Cartridge(const std::string& filename)
             mapper = std::make_unique<MBC0>(rom, eram);
             break;
         case Type::MBC1:
-            mapper = std::make_unique<MBC1>(rom, eram);
-            break;
         case Type::MBC1_RAM:
-            mapper = std::make_unique<MBC1>(rom, eram);
-            break;
         case Type::MBC1_RAM_BATTERY:
             mapper = std::make_unique<MBC1>(rom, eram);
+            break;
+        case Type::MBC2:
+        case Type::MBC2_BATTERY:
+            mapper = std::make_unique<MBC2>(rom, eram);
             break;
         default:
             throw std::runtime_error("Unsupported cartridge type 0x" + std::to_string(rom[CARTRIDGE_TYPE_ADDR]));

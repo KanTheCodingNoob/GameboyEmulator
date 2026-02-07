@@ -11,6 +11,10 @@ public:
     MBC1(std::vector<uint8_t>& rom, std::vector<uint8_t>& eram);
     ~MBC1() override;
 
+    uint8_t read(uint16_t addr) override;
+    void write(uint16_t addr, uint8_t data) override;
+
+private:
     bool bankingMode = false;   // false = simple mode, true = complex mode
     bool ramEnable = false;
     uint8_t romBankNumber = 0;
@@ -18,9 +22,4 @@ public:
 
     uint8_t romBankCount = rom.size() / 0x4000;
     uint8_t ramBankCount = eram.size() / 0x2000;
-
-    uint8_t read(uint16_t addr) override;
-    void write(uint16_t addr, uint8_t data) override;
-
-private:
 };
