@@ -28,7 +28,6 @@ uint8_t MBC3::read(const uint16_t addr)
         if (!ramAndRTCEnabled)
             return 0xFF;
 
-        // 🚨 CRITICAL FIX
         if (ramBankNumber >= 0x08 && ramBankNumber <= 0x0C)
             return 0xFF;   // RTC selected → not RAM
 

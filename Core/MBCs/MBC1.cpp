@@ -64,7 +64,13 @@ void MBC1::write(const uint16_t addr, const uint8_t data)
 {
     if (addr < 0x2000)
     {
-        ramEnable = (data & 0x0F) == 0x0A;
+        if ((data & 0xF) == 0xA)
+        {
+            ramEnable = true;
+        } else if ((data & 0xF) == 0x0)
+        {
+            ramEnable = false;
+        }
         return;
     }
     if (addr >= 0x2000 && addr <= 0x3FFF)
