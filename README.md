@@ -16,7 +16,7 @@ and performance-aware design.
 
 ### Memory System
 * Accurate 64Kb map of the Game Boy system
-* Support ROM banking for games using MBC0 and MBC1 (Memory Bank Controller)
+* Support ROM banking for games using MBC0, MBC1, MBC2, MBC3 and MBC5
 * External RAM (ERAM) support
 
 ### Input
@@ -75,8 +75,8 @@ I have use these following test to validate my program's accuracy:
 
 ## Future Work
 
-* Implement more widely-used MBC types (MBC3, MBC5)
 * APU Implementation
+* Web Migration
 
 ## How to Build
 Requirements
