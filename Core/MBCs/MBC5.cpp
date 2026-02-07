@@ -17,7 +17,9 @@ uint8_t MBC5::read(const uint16_t addr)
     }
     if (addr >= 0x4000 && addr <= 0x7FFF)
     {
-        return rom[romBankNumber * 0x4000 + (addr - 0x4000)];
+        const uint32_t bank = romBankNumber % romBankCount;
+        const uint32_t offset = bank * 0x4000 + (addr - 0x4000);
+        return rom[offset];
     }
     if (addr >= 0xA000 && addr <= 0xBFFF)
     {

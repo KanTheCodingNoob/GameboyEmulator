@@ -15,7 +15,7 @@ public:
     void write(uint16_t addr, uint8_t data) override;
 private:
     uint16_t romBankNumber = 1;
-    uint8_t romBankCount = rom.size() / 0x4000;
+    uint16_t romBankCount = rom.size() / 0x4000;
     uint16_t ramBankNumber = 0;
     uint16_t ramBankCount = eram.size() / 0x2000;
     bool ramEnabled = false;
