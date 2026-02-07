@@ -20,6 +20,6 @@ private:
     uint8_t romBankNumber = 0;
     uint8_t romBankCount = rom.size() / 0x4000;
 
-    std::array<uint8_t, 0x200> builtInRam;
+    std::array<uint8_t, 0x200> builtInRam{};
     bool ramEnabled = true;
 };

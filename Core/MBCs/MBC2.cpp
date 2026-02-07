@@ -5,7 +5,10 @@
 #include "MBC2.h"
 
 MBC2::MBC2(std::vector<uint8_t>& rom, std::vector<uint8_t>& eram):
-MBC(rom, eram) {}
+MBC(rom, eram)
+{
+    builtInRam.fill(0xFF); // Initial RAM filled with garbage val
+}
 
 MBC2::~MBC2()
 = default;
@@ -47,5 +50,18 @@ void MBC2::write(const uint16_t addr, const uint8_t data)
         {
             ramEnabled = (data & 0xF) == 0x0A;
         }
+        return;
+    }
+    if (addr >= 0xA000 && addr <= 0xBFFF)
+    {
+        if (ramEnabled)
+        {
+            // Only 512 addresses exist → mirror using 9 bits
+            const uint16_t ramAddr = (addr - 0xA000) & 0x01FF;
+
+            // Store only lower 4 bits
+            builtInRam[ramAddr] = data & 0x0F;
+        }
+        return;
     }
 }
