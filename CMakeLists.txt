@@ -37,6 +37,10 @@ add_executable(GameboyEmu main.cpp
         App/SDLInputMapper.h
         Core/MBCs/MBC2.cpp
         Core/MBCs/MBC2.h
+        Core/MBCs/MBC5.cpp
+        Core/MBCs/MBC5.h
+        Core/MBCs/MBC3.cpp
+        Core/MBCs/MBC3.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD

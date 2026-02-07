@@ -11,6 +11,8 @@
 
 #include "MBCs/MBC0.h"
 #include "MBCs/MBC1.h"
+#include "MBCs/MBC2.h"
+#include "MBCs/MBC3.h"
 
 
 class Cartridge
