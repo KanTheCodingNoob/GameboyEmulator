@@ -13,8 +13,8 @@ add_executable(GameboyEmu main.cpp
         Core/Bus.h
         Core/Cartridge.cpp
         Core/Cartridge.h
-        Core/MBC.cpp
-        Core/MBC.h
+        Core/MBCs/MBC.cpp
+        Core/MBCs/MBC.h
         Core/MBCs/MBC1.cpp
         Core/MBCs/MBC1.h
         Core/Joypad.cpp
@@ -35,6 +35,8 @@ add_executable(GameboyEmu main.cpp
         App/Emulator.h
         App/SDLInputMapper.cpp
         App/SDLInputMapper.h
+        Core/MBCs/MBC2.cpp
+        Core/MBCs/MBC2.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD
