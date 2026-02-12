@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.16)
 project(GameboyEmu)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
@@ -41,6 +41,8 @@ add_executable(GameboyEmu main.cpp
         Core/MBCs/MBC5.h
         Core/MBCs/MBC3.cpp
         Core/MBCs/MBC3.h
+        Core/APU.h
+        Core/APU.cpp
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD

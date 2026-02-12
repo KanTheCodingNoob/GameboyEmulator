@@ -6,6 +6,7 @@
 #include <array>
 #include <memory>
 
+#include "APU.h"
 #include "Cartridge.h"
 #include "Interrupt.h"
 #include "IO.h"
@@ -25,6 +26,7 @@ public:
     Interrupt interrupt;
     IO io;
     PPU ppu;
+    APU apu;
 
     std::shared_ptr<Cartridge> cartridge;
 
