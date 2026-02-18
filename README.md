@@ -84,7 +84,7 @@ Requirements
 * C++17+ compiler
 * CMake
 
-Build (Window)
+Build
 
 ```bash
 git clone https://github.com/KanTheCodingNoob/GameboyEmulator.git
