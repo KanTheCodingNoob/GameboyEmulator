@@ -43,6 +43,12 @@ add_executable(GameboyEmu main.cpp
         Core/MBCs/MBC3.h
         Core/APU.h
         Core/APU.cpp
+        Core/Audio/PulseWaveChannel.cpp
+        Core/Audio/PulseWaveChannel.h
+        Core/Audio/WaveChannel.cpp
+        Core/Audio/WaveChannel.h
+        Core/Audio/NoiseChannel.cpp
+        Core/Audio/NoiseChannel.h
 )
 
 add_custom_command(TARGET GameboyEmu POST_BUILD

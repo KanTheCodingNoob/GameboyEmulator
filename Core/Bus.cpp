@@ -162,4 +162,5 @@ void Bus::reset()
     // ppu.reset();
     joypad.reset();
     timer.reset();
+    apu.reset();
 }
