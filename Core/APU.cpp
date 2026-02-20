@@ -34,7 +34,8 @@ void APU::reset() {
 }
 
 void APU::clock() {
-
+    ch1.clock();
+    ch2.clock();
 }
 
 void APU::write(uint16_t addr, uint8_t data) {
