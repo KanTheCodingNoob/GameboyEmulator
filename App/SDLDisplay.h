@@ -7,6 +7,7 @@
 
 #include "Emulator.h"
 #include "SDLInputMapper.h"
+#include "SDL3/SDL_audio.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_render.h"
 
@@ -47,5 +48,7 @@ private:
     SDL_Window*   window   = nullptr;
     SDL_Renderer* renderer = nullptr;
     SDL_Texture*  texture  = nullptr;
+
+    SDL_AudioStream* audioStream = nullptr;
 };
 

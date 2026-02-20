@@ -27,7 +27,7 @@ SDLDisplay::~SDLDisplay() {
 
 bool SDLDisplay::init()
 {
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         SDL_Log("SDL init failed: %s", SDL_GetError());
         return false;
     }
@@ -52,6 +52,19 @@ bool SDLDisplay::init()
         SDL_TEXTUREACCESS_STREAMING,
         WIDTH, HEIGHT
     );
+
+    SDL_AudioSpec spec;
+    spec.format = SDL_AUDIO_F32;
+    spec.channels = 1;
+    spec.freq = 48000;
+
+    audioStream = SDL_CreateAudioStream(&spec, &spec);
+    if (!audioStream) {
+        SDL_Log("AudioStream creation failed: %s", SDL_GetError());
+    } else {
+        SDL_BindAudioStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, audioStream);
+        emulator.bus.apu.setAudioStream(audioStream);
+    }
 
     return true;
 }
@@ -139,6 +152,11 @@ void SDLDisplay::iterate()
 void SDLDisplay::shutdown()
 {
     emulator.stop();
+
+    if (audioStream) {
+        SDL_DestroyAudioStream(audioStream);
+        audioStream = nullptr;
+    }
 
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
