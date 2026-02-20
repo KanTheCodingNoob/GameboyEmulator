@@ -29,4 +29,5 @@ private:
     friend class Timer;
     friend class Interrupt;
     friend class Joypad;
+    friend class APU;
 };

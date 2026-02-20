@@ -58,13 +58,12 @@ bool SDLDisplay::init()
     spec.channels = 1;
     spec.freq = 48000;
 
-    audioStream = SDL_CreateAudioStream(&spec, &spec);
+    audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
     if (!audioStream) {
         SDL_Log("AudioStream creation failed: %s", SDL_GetError());
-    } else {
-        SDL_BindAudioStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, audioStream);
-        emulator.bus.apu.setAudioStream(audioStream);
+        return false;
     }
+    SDL_ResumeAudioStreamDevice(audioStream);
 
     return true;
 }
@@ -135,13 +134,24 @@ void SDLDisplay::handleEvent(const SDL_Event& event)
     }
 }
 
-void SDLDisplay::iterate()
-{
+void SDLDisplay::iterate() {
     if (!emulator.hasRom())
     {
         renderIdleScreen();
         return;
     }
+
+    const auto& buffer = emulator.bus.apu.getAudioBuffer();
+
+    if (!buffer.empty() && SDL_GetAudioStreamQueued(audioStream) < 24000) {
+        SDL_PutAudioStreamData(
+            audioStream,
+        buffer.data(),
+        buffer.size() * sizeof(float)
+        );
+        emulator.bus.apu.clearAudioBuffer();
+    }
+
 
     SDL_UpdateTexture(texture, nullptr, emulator.framebuffer, WIDTH * sizeof(uint32_t));
     SDL_RenderClear(renderer);
@@ -153,13 +163,9 @@ void SDLDisplay::shutdown()
 {
     emulator.stop();
 
-    if (audioStream) {
-        SDL_DestroyAudioStream(audioStream);
-        audioStream = nullptr;
-    }
-
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    SDL_DestroyAudioStream(audioStream);
     SDL_Quit();
 }

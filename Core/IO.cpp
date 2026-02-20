@@ -27,6 +27,11 @@ void IO::busIOWrite(const uint16_t addr, const uint8_t data) const
         return;
     }
 
+    if (addr >= 0xFF10 && addr <= 0xFF3F) {
+        bus->apu.write(addr, data);
+        return;
+    }
+
     // OAM DMA Transfer activated through writing to FF46
     if (addr == 0xFF46)
     {

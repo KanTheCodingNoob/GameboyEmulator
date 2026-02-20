@@ -19,6 +19,23 @@ public:
     void clock();
     void trigger();
     uint8_t sample();
+
+    void setInitialLengthTimer(uint8_t lengthTimer);
+
+    void setWaveDuty(uint8_t waveDuty);
+
+    void setInitialVolume(uint8_t initialVolume);
+
+    void setEnvDirection(bool envDirection);
+
+    void setSweepPace(uint8_t pace);
+
+    void setLowPeriodValue(uint8_t lowPeriodValue);
+
+    void setHighPeriodValue(uint8_t highPeriodValue);
+
+    void lengthEnable(bool enable);
+
 private:
     struct Sweep {
 
@@ -26,19 +43,20 @@ private:
 
     struct PulsePhaseTimer {
         uint8_t phase = 0;
-        uint16_t counter = 4 * 2048;
+        int counter = 4 * 2048;
         uint16_t frequency = 0;
 
-        void clock() {
+        void tick() {
             counter -= 4;
-            if (counter == 0) {
+            if (counter <= 0) {
                 counter = 4 * (2048 - frequency);
                 phase = (phase + 1) % 8;
             }
         }
 
         void trigger() {
-            counter = 4 * 2048;
+            counter = 4 * (2048 - frequency);
+            phase = 0;
         }
     };
 
@@ -70,7 +88,7 @@ private:
                 return;
             }
 
-            counter -= 4;
+            counter -= 1;
             if (counter == 0) {
                 enabled = false;
             }
@@ -94,7 +112,7 @@ private:
         uint8_t period = 0;
         Direction direction = Decreasing;
         // Configured value via registers
-        uint8_t starting_volume = 0;
+        uint8_t startingVolume = 0;
         uint8_t configuredPeriod = 0;
         Direction configuredDirection = Decreasing;
 
@@ -103,7 +121,7 @@ private:
                 return;
             }
 
-            counter -= 4;
+            counter -= 1;
             if (counter == 0) {
                 counter = period;
             }
@@ -111,13 +129,13 @@ private:
             if ((direction == Decreasing && volume == 0) || direction == Increasing && volume == 15) {
                 // Nothing
             } else if (direction == Increasing) {
-                volume -= 4;
+                volume -= 1;
             } else if (direction == Decreasing) {
-                volume += 4;
+                volume += 1;
             }
         }
         void trigger() {
-            volume = starting_volume;
+            volume = startingVolume;
             direction = configuredDirection;
             period = configuredPeriod;
 
@@ -131,6 +149,8 @@ private:
     DutyCycle dutyCycle;
     LengthCounter lengthCounter;
     Envelope envelope;
+
+    friend class APU;
 };
 
 
