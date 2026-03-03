@@ -27,6 +27,7 @@ APU::APU(Bus* bus) : bus(bus)
                      , NR52(bus->IORegisters[0x26])
                      , WaveRAM(&bus->IORegisters[0x30]
                      ) {
+    ch3.setWaveRAM(WaveRAM);
 }
 
 void APU::reset() {
@@ -36,10 +37,12 @@ void APU::reset() {
 void APU::clock() {
     ch1.clock();
     ch2.clock();
+    ch3.clock();
     ch4.clock();
 
     frameSequencer.tick(ch1);
     frameSequencer.tick(ch2);
+    frameSequencer.tick(ch3);
     frameSequencer.tick(ch4);
 
     cycleCounter++;
@@ -54,10 +57,11 @@ void APU::generateAudioSample() {
 
     sample += ch1.sample();
     sample += ch2.sample();
+    sample += ch3.sample();
     sample += ch4.sample();
 
     // Normalize (Game Boy has 4 channels)
-    sample /= 3.0f;
+    sample /= 4.0f;
 
     // Convert 0-15 volume → -1.0 to 1.0
     sample = (sample / 15.0f) * 2.0f - 1.0f;
@@ -77,14 +81,14 @@ void APU::write(const uint16_t addr, const uint8_t data) {
     switch (addr) {
         // Channel 1
         case 0xFF10:
-            break;
+            return;
         case 0xFF11: {
             const uint8_t lengthTimer = data & 0b00111111; // Low 6 bit
             ch1.setInitialLengthTimer(lengthTimer);
             const uint8_t waveDuty = (data >> 6); // High 2 bit
             ch1.setWaveDuty(waveDuty);
             NR11 = data;
-            break;
+            return;
         }
         case 0xFF12: {
             const uint8_t initialVolume = data >> 4; // High 4 bit
@@ -94,12 +98,12 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t sweepPace = data & 0b00000111;
             ch1.setSweepPace(sweepPace);
             NR12 = data;
-            break;
+            return;
         }
         case 0xFF13: {
             ch1.setLowPeriodValue(data);
             NR13 = data;
-            break;
+            return;
         }
         case 0xFF14: {
             if (data >> 7) {
@@ -110,7 +114,7 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t period = data & 0b00000111;
             ch1.setHighPeriodValue(period);
             NR14 = data;
-            break;
+            return;
         }
             // Channel 2 (Pretty much just channel 1 without the sweep)
         case 0xFF16: {
@@ -119,7 +123,7 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t waveDuty = (data >> 6); // High 2 bit
             ch2.setWaveDuty(waveDuty);
             NR21 = data;
-            break;
+            return;
         }
         case 0xFF17: {
             const uint8_t initialVolume = data >> 4; // High 4 bit
@@ -129,12 +133,12 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t sweepPace = data & 0b00000111;
             ch2.setSweepPace(sweepPace);
             NR22 = data;
-            break;
+            return;
         }
         case 0xFF18: {
             ch2.setLowPeriodValue(data);
             NR23 = data;
-            break;
+            return;
         }
         case 0xFF19: {
             if (data >> 7) {
@@ -145,25 +149,55 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t period = data & 0b00000111;
             ch2.setHighPeriodValue(period);
             NR24 = data;
-            break;
+            return;
+        }
+            // Channel 3
+        case 0xFF1A: {
+            ch3.dacEnable(data >> 7);
+            NR30 = data;
+            return;
+        }
+        case 0xFF1B: {
+            ch3.setInitialLengthTimer(data);
+            NR31 = data;
+            return;
+        }
+        case 0xFF1C: {
+            ch3.setOutputLevel((data >> 5) & 0x03);
+            NR32 = data;
+            return;
+        }
+        case 0xFF1D: {
+            ch3.setLowPeriodValue(data);
+            NR33 = data;
+            return;
+        }
+        case 0xFF1E: {
+            if (data >> 7) {
+                ch3.trigger();
+            }
+            ch3.lengthEnable((data >> 6) & 0x01);
+            ch3.setHighPeriodValue(data & 0x07);
+            NR34 = data;
+            return;
         }
             // Channel 4
         case 0xFF20: {
             ch4.setInitialLengthTimer(data & 0x3F);
             NR41 = data;
-            break;
+            return;
         }
         case 0xFF21: {
             ch4.setInitialVolume(data >> 4);
             ch4.setEnvDirection((data >> 3) & 1);
             ch4.setEnvPace(data & 0x7);
             NR42 = data;
-            break;
+            return;
         }
         case 0xFF22: {
             ch4.setLfsrParameters(data & 0x7, (data >> 3) & 1, data >> 4);
             NR43 = data;
-            break;
+            return;
         }
         case 0xFF23: {
             if (data >> 7) {
@@ -171,7 +205,7 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             }
             ch4.lengthEnable((data >> 6) & 1);
             NR44 = data;
-            break;
+            return;
         }
             // Global setting
         case 0xFF24: {
@@ -185,6 +219,9 @@ void APU::write(const uint16_t addr, const uint8_t data) {
         }
         default:
             break;
+    }
+    if (addr >= 0xFF30 && addr <= 0xFF3F) {
+        WaveRAM[addr - 0xFF30] = data;
     }
 }
 

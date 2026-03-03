@@ -67,13 +67,19 @@ private:
             }
 
             if (step == 7) {
-                ch.envelope.clock();
+                tickEnvelope(ch);
             }
-
-            // Sweep would go on steps 2 and 6
 
             step = (step + 1) & 7;
         }
+
+    private:
+        template<typename Channel>
+        auto tickEnvelope(Channel& ch) -> decltype(ch.envelope.clock(), void()) {
+            ch.envelope.clock();
+        }
+
+        void tickEnvelope(...) {}
     };
 
     FrameSequencer frameSequencer;
