@@ -31,13 +31,16 @@ private:
             counter -= 4;
             if (counter <= 0) {
                 reloadCounter();
-                
+                // --- Clock the LFSR ---
+                // XOR bit 0 and bit 1 together to produce the feedback bit.
+                // This is the "linear feedback" in LFSR — it determines the next bit.
                 uint8_t result = (lfsr & 1) ^ ((lfsr >> 1) & 1);
-                lfsr >>= 1;
+                lfsr >>= 1; // Shift the entire register right by 1
+                // Feed the result bit back into bit 14 (the top of the 15-bit register)
                 lfsr |= (result << 14);
                 if (widthMode) {
-                    lfsr &= ~0x40;
-                    lfsr |= (result << 6);
+                    lfsr &= ~0x40;  // Clear bit 6
+                    lfsr |= (result << 6); // Set bit 6 to the feedback bit
                 }
             }
         }
