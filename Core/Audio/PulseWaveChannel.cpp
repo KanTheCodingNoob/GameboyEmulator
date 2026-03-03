@@ -44,7 +44,7 @@ void PulseWaveChannel::setEnvDirection(bool envDirection) {
 }
 
 void PulseWaveChannel::setSweepPace(uint8_t pace) {
-    // TODO
+    envelope.configuredPeriod = pace;
 }
 
 void PulseWaveChannel::setLowPeriodValue(const uint8_t lowPeriodValue) {

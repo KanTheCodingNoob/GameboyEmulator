@@ -129,9 +129,9 @@ private:
             if ((direction == Decreasing && volume == 0) || direction == Increasing && volume == 15) {
                 // Nothing
             } else if (direction == Increasing) {
-                volume -= 1;
-            } else if (direction == Decreasing) {
                 volume += 1;
+            } else if (direction == Decreasing) {
+                volume -= 1;
             }
         }
         void trigger() {
