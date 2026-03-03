@@ -36,9 +36,11 @@ void APU::reset() {
 void APU::clock() {
     ch1.clock();
     ch2.clock();
+    ch4.clock();
 
     frameSequencer.tick(ch1);
     frameSequencer.tick(ch2);
+    frameSequencer.tick(ch4);
 
     cycleCounter++;
     while (cycleCounter >= cyclesPerSample) {
@@ -52,9 +54,10 @@ void APU::generateAudioSample() {
 
     sample += ch1.sample();
     sample += ch2.sample();
+    sample += ch4.sample();
 
     // Normalize (Game Boy has 4 channels)
-    sample /= 4.0f;
+    sample /= 3.0f;
 
     // Convert 0-15 volume → -1.0 to 1.0
     sample = (sample / 15.0f) * 2.0f - 1.0f;
@@ -142,6 +145,32 @@ void APU::write(const uint16_t addr, const uint8_t data) {
             const uint8_t period = data & 0b00000111;
             ch2.setHighPeriodValue(period);
             NR24 = data;
+            break;
+        }
+            // Channel 4
+        case 0xFF20: {
+            ch4.setInitialLengthTimer(data & 0x3F);
+            NR41 = data;
+            break;
+        }
+        case 0xFF21: {
+            ch4.setInitialVolume(data >> 4);
+            ch4.setEnvDirection((data >> 3) & 1);
+            ch4.setEnvPace(data & 0x7);
+            NR42 = data;
+            break;
+        }
+        case 0xFF22: {
+            ch4.setLfsrParameters(data & 0x7, (data >> 3) & 1, data >> 4);
+            NR43 = data;
+            break;
+        }
+        case 0xFF23: {
+            if (data >> 7) {
+                ch4.trigger();
+            }
+            ch4.lengthEnable((data >> 6) & 1);
+            NR44 = data;
             break;
         }
             // Global setting
