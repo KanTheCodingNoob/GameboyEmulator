@@ -53,10 +53,10 @@ private:
 
     struct LengthCounter {
         bool enabled = false;
-        int counter = 64;
+        int counter = 256;
 
         void load(const uint8_t length) {
-            counter = 64 - length;
+            counter = 256 - length;
         }
 
         void clock(bool& channel_enabled) {
@@ -72,7 +72,7 @@ private:
 
         void trigger() {
             if (counter == 0) {
-                counter = 64;
+                counter = 256;
             }
         }
     };

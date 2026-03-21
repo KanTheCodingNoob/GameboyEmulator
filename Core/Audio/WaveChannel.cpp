@@ -5,7 +5,7 @@
 #include "WaveChannel.h"
 
 void WaveChannel::clock() {
-    if (dacOn) {
+    if (enabled && dacOn) {
         timer.tick();
     }
 }
@@ -17,7 +17,7 @@ void WaveChannel::trigger() {
 }
 
 uint8_t WaveChannel::sample() {
-    if (!enabled || !dacOn || lengthCounter.counter == 0 || !waveRAM) {
+    if (!enabled || !dacOn) {
         return 0;
     }
 
