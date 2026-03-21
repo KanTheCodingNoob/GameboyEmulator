@@ -68,3 +68,7 @@ void WaveChannel::lengthEnable(bool enable) {
 void WaveChannel::dacEnable(bool enable) {
     dacOn = enable;
 }
+
+bool& WaveChannel::getChannelEnabled() {
+    return enabled;
+}

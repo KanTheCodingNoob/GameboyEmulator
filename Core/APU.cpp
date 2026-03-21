@@ -42,7 +42,7 @@ void APU::clock() {
 
     frameSequencer.tick(ch1);
     frameSequencer.tick(ch2);
-    // frameSequencer.tick(ch3);
+    frameSequencer.tick(ch3);
     frameSequencer.tick(ch4);
 
     cycleCounter++;
@@ -57,7 +57,7 @@ void APU::generateAudioSample() {
 
     sample += ch1.sample();
     sample += ch2.sample();
-    // sample += ch3.sample();
+    sample += ch3.sample();
     sample += ch4.sample();
 
     // Normalize (Game Boy has 4 channels)

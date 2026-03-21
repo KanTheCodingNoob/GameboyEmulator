@@ -20,6 +20,8 @@ public:
     void lengthEnable(bool enable);
     void dacEnable(bool enable);
 
+    bool &getChannelEnabled();
+
     void setWaveRAM(uint8_t* ram) {
         waveRAM = ram;
     }
@@ -51,26 +53,26 @@ private:
 
     struct LengthCounter {
         bool enabled = false;
-        int counter = 256;
+        int counter = 64;
 
         void load(const uint8_t length) {
-            counter = 256 - length;
+            counter = 64 - length;
         }
 
-        void clock() {
+        void clock(bool& channel_enabled) {
             if (!enabled || counter == 0) {
                 return;
             }
 
             counter -= 1;
             if (counter == 0) {
-                // Channel is disabled when length counter hits 0
+                channel_enabled = false;
             }
         }
 
         void trigger() {
             if (counter == 0) {
-                counter = 256;
+                counter = 64;
             }
         }
     };
