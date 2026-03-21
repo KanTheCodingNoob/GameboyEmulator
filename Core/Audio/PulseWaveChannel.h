@@ -36,6 +36,8 @@ public:
 
     void lengthEnable(bool enable);
 
+    bool& getChannelEnabled();
+
 private:
     struct Sweep {
 
@@ -83,14 +85,14 @@ private:
             counter = 64 - length;
         }
 
-        void clock() {
+        void clock(bool& channel_enabled) {
             if (!enabled || counter == 0) {
                 return;
             }
 
             counter -= 1;
             if (counter == 0) {
-                enabled = false;
+                channel_enabled = false;
             }
         }
 

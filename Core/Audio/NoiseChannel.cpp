@@ -50,3 +50,7 @@ void NoiseChannel::setLfsrParameters(uint8_t divisorCode, bool widthMode, uint8_
 void NoiseChannel::lengthEnable(bool enable) {
     lengthCounter.enabled = enable;
 }
+
+bool& NoiseChannel::getChannelEnabled() {
+    return enabled;
+}

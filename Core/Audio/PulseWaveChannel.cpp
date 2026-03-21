@@ -60,3 +60,7 @@ void PulseWaveChannel::setHighPeriodValue(const uint8_t highPeriodValue) {
 void PulseWaveChannel::lengthEnable(const bool enable) {
     lengthCounter.enabled = enable;
 }
+
+bool& PulseWaveChannel::getChannelEnabled() {
+    return lengthCounter.enabled;
+}

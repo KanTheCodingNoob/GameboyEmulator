@@ -62,24 +62,18 @@ private:
                 case 2:
                 case 4:
                 case 6:
-                    ch.lengthCounter.clock();
+                    ch.lengthCounter.clock(ch.getChannelEnabled());
                     break;
             }
 
             if (step == 7) {
-                tickEnvelope(ch);
+                if constexpr (requires { ch.envelope.clock(); }) {
+                    ch.envelope.clock();
+                }
             }
 
             step = (step + 1) & 7;
         }
-
-    private:
-        template<typename Channel>
-        auto tickEnvelope(Channel& ch) -> decltype(ch.envelope.clock(), void()) {
-            ch.envelope.clock();
-        }
-
-        void tickEnvelope(...) {}
     };
 
     FrameSequencer frameSequencer;

@@ -19,6 +19,8 @@ public:
     void setLfsrParameters(uint8_t divisorCode, bool widthMode, uint8_t shiftClockFreq);
     void lengthEnable(bool enable);
 
+    bool& getChannelEnabled();
+
 private:
     struct NoiseTimer {
         uint16_t lfsr = 0x7FFF;
@@ -64,14 +66,14 @@ private:
             counter = 64 - (length & 0x3F);
         }
 
-        void clock() {
+        void clock(bool &channel_enabled) {
             if (!enabled || counter == 0) {
                 return;
             }
 
             counter -= 1;
             if (counter == 0) {
-                // Channel is disabled when length counter hits 0
+                channel_enabled = false;
             }
         }
 
