@@ -55,7 +55,7 @@ bool SDLDisplay::init()
 
     SDL_AudioSpec spec;
     spec.format = SDL_AUDIO_F32;
-    spec.channels = 1;
+    spec.channels = 2;
     spec.freq = 48000;
 
     audioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
@@ -143,7 +143,7 @@ void SDLDisplay::iterate() {
 
     const auto& buffer = emulator.bus.apu.getAudioBuffer();
 
-    if (!buffer.empty() && SDL_GetAudioStreamQueued(audioStream) < 24000) {
+    if (!buffer.empty() && SDL_GetAudioStreamQueued(audioStream) < 48000) {
         SDL_PutAudioStreamData(
             audioStream,
         buffer.data(),

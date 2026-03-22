@@ -53,20 +53,36 @@ void APU::clock() {
 }
 
 void APU::generateAudioSample() {
-    float sample = 0.0f;
+    const float s1 = ch1.sample();
+    const float s2 = ch2.sample();
+    const float s3 = ch3.sample();
+    const float s4 = ch4.sample();
 
-    sample += ch1.sample();
-    sample += ch2.sample();
-    sample += ch3.sample();
-    sample += ch4.sample();
+    float left = 0.0f, right = 0.0f;
 
-    // Normalize (Game Boy has 4 channels)
-    sample /= 4.0f;
+    left  += (NR51 >> 4) & 1 ? s1 : 0.0f;
+    left  += (NR51 >> 5) & 1 ? s2 : 0.0f;
+    left  += (NR51 >> 6) & 1 ? s3 : 0.0f;
+    left  += (NR51 >> 7) & 1 ? s4 : 0.0f;
 
-    // Convert 0-15 volume → -1.0 to 1.0
-    sample = (sample / 15.0f) * 2.0f - 1.0f;
+    right += (NR51 >> 0) & 1 ? s1 : 0.0f;
+    right += (NR51 >> 1) & 1 ? s2 : 0.0f;
+    right += (NR51 >> 2) & 1 ? s3 : 0.0f;
+    right += (NR51 >> 3) & 1 ? s4 : 0.0f;
 
-    audioBuffer.push_back(sample);
+    // NR50: bits 6-4 = left volume, bits 2-0 = right volume (0-7 → 1-8)
+    const float leftVol  = ((NR50 >> 4) & 0x07) + 1;
+    const float rightVol = ((NR50 >> 0) & 0x07) + 1;
+
+    left  = (left  / 4.0f / 15.0f) * 2.0f - 1.0f;
+    right = (right / 4.0f / 15.0f) * 2.0f - 1.0f;
+
+    // Scale by master volume (max vol = 8, so divide by 8 to keep in -1..1)
+    left  *= leftVol  / 8.0f;
+    right *= rightVol / 8.0f;
+
+    audioBuffer.push_back(left);
+    audioBuffer.push_back(right);
 }
 
 std::vector<float>& APU::getAudioBuffer() {
@@ -209,13 +225,13 @@ void APU::write(const uint16_t addr, const uint8_t data) {
         }
             // Global setting
         case 0xFF24: {
-
+            NR50 = data;
         }
         case 0xFF25: {
-
+            NR51 = data;
         }
         case 0xFF26: {
-
+            NR52 = data;
         }
         default:
             break;
@@ -226,5 +242,13 @@ void APU::write(const uint16_t addr, const uint8_t data) {
 }
 
 uint8_t APU::read(uint16_t addr) {
-    return 0;
+    switch (addr) {
+        case 0xFF26: return NR52 |
+                ((ch4.getChannelEnabled() << 3) |
+                    (ch3.getChannelEnabled() << 2) |
+                    (ch2.getChannelEnabled() << 1) |
+                    (ch1.getChannelEnabled()));
+        default:
+            return bus->io.directIORead(addr);
+    }
 }
